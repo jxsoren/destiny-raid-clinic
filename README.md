@@ -59,3 +59,4 @@ This is an unofficial fan project, not affiliated with or endorsed by Bungie. De
 
 Encounter layout references: two community Atheon maps, including one by TheRedDelilah. Mechanics are from community guides ([PCGamesN](https://www.pcgamesn.com/destiny-2/vault-of-glass-guide), [Dexerto](https://www.dexerto.com/destiny/ultimate-destiny-2-vault-of-glass-raid-guide-1578682/), [Destinypedia](https://www.destinypedia.com/Atheon,_Time%27s_Conflux), [Game Rant](https://gamerant.com/destiny-2-how-to-beat-atheon-in-the-vault-of-glass/)). The reference images themselves aren't stored in this repo.
 # destiny-raid-clinic
+# destiny-raid-clinic
