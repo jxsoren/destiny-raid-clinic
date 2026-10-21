@@ -1,0 +1,33 @@
+{
+  "id": "atheon",
+  "raid": "vault-of-glass",
+  "order": 7,
+  "name": "Atheon, Time's Conflux",
+  "version": 1,
+  "arena": {
+    "units": "sim",
+    "levels": [],
+    "walkable": [],
+    "walls": [],
+    "obstacles": [],
+    "stairs": [],
+    "rooms": []
+  },
+  "markers": [],
+  "roles": [],
+  "enemies": [],
+  "phases": [],
+  "mechanics": [],
+  "wipe_conditions": [],
+  "damage": {
+    "windows": [],
+    "boss_health": null,
+    "enrage": null
+  },
+  "drills": [],
+  "difficulty": {
+    "master": {},
+    "contest": {}
+  },
+  "sources": []
+}

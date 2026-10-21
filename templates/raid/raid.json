@@ -1,0 +1,8 @@
+{
+  "id": "{{raid_id}}",
+  "name": "{{raid_name}}",
+  "released": null,
+  "encounters": [],
+  "glossary": [],
+  "sources": []
+}

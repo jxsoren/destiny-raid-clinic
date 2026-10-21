@@ -1,0 +1,8 @@
+{
+  "id": "vault-of-glass",
+  "name": "Vault of Glass",
+  "released": null,
+  "encounters": ["atheon"],
+  "glossary": [],
+  "sources": []
+}

@@ -1,0 +1,79 @@
+---
+encounter: {{encounter_id}}
+raid: {{raid_id}}
+status: draft
+lastVerifiedPatch: ""
+authors: []
+---
+
+# {{encounter_name}}
+
+<!-- Every encounter guide has these sections, in this order. `just content` enforces it.
+     Sections marked "generated" render from encounter.json, so the guide and the trainer can't
+     disagree. Write the prose around them; don't hand-type numbers the data file owns. -->
+
+## TL;DR
+
+TODO: 3 to 5 bullets a player can read in the loading screen.
+
+## Overview
+
+TODO: What the encounter is, the win condition, and how the fight flows from start to finish.
+
+## Roles & loadout
+
+<!-- generated from encounter.json roles -->
+{% roles /%}
+
+TODO: Loadout advice per role.
+
+## Map & callouts
+
+<!-- generated from encounter.json arena + markers -->
+{% callout-map /%}
+
+TODO: How teams usually name positions, and any alternative callout schemes.
+
+## Mechanics glossary
+
+<!-- generated from encounter.json mechanics, buffs and debuffs -->
+{% glossary /%}
+
+## Phase walkthrough
+
+<!-- generated phase table; then one ### section per phase, in data order -->
+{% phase-table /%}
+
+TODO: One `###` heading per phase in encounter.json, in the same order.
+
+## Damage phase
+
+<!-- generated from encounter.json damage -->
+{% damage-windows /%}
+
+TODO: Positioning, timing and what to do when the window closes.
+
+## Wipe conditions
+
+<!-- generated from encounter.json wipe_conditions -->
+{% wipe-conditions /%}
+
+TODO: How to recover from the most common near-wipes.
+
+## Challenges & triumphs
+
+TODO: The encounter's weekly challenge and related triumphs.
+
+## Master / Contest differences
+
+<!-- generated from encounter.json difficulty -->
+{% difficulty-differences /%}
+
+## Common mistakes
+
+TODO: The mistakes that cause most wipes, and how to avoid them.
+
+## Practice drills
+
+<!-- generated from encounter.json drills: each opens the trainer at that drill's start state -->
+{% drills /%}

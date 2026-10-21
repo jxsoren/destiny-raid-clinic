@@ -1,0 +1,29 @@
+# Determinism guards for the simulation. The same seed and inputs must produce bit-identical
+# results natively and in WebAssembly, so these are compile-time lint errors in CI.
+
+# std's transcendental functions call a different libm on each target. Use the crate's `math`
+# module (backed by the `libm` crate) instead.
+disallowed-methods = [
+  { path = "f32::sin", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f32::cos", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f32::tan", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f32::atan2", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f32::exp", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f32::powf", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f32::ln", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f32::mul_add", reason = "FMA results differ by platform" },
+  { path = "f64::sin", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f64::cos", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f64::tan", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f64::atan2", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f64::exp", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f64::powf", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f64::ln", reason = "use sim::math (libm) for cross-target determinism" },
+  { path = "f64::mul_add", reason = "FMA results differ by platform" },
+]
+
+# Hash-based collections iterate in an unspecified order.
+disallowed-types = [
+  { path = "std::collections::HashMap", reason = "iteration order is unspecified; use BTreeMap or a sorted Vec" },
+  { path = "std::collections::HashSet", reason = "iteration order is unspecified; use BTreeSet or a sorted Vec" },
+]

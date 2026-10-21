@@ -1,62 +1,91 @@
 # destiny-raid-clinic
 
-Fan-made, browser-based trainers for Destiny 2 raid encounters. Pick a seat in the fireteam, bots play the other five correctly, and every wipe ends with an explanation of what went wrong.
+Fan-made, browser-based trainers and guides for Destiny 2 raid encounters. Pick a seat in the fireteam, bots play the other five correctly, and every wipe ends with an explanation of what went wrong. Every raid and encounter follows the same template: a deterministic simulation plus a written guide, generated from the same data.
 
-**Encounters**
+> Status: **foundation**. The repo layout, tooling, CI and content templates are in place. The Rust simulation engine is next. A single-page Atheon prototype lives in `prototype/` until it's ported.
 
-| Raid | Encounter | Path |
-|---|---|---|
-| Vault of Glass | Atheon, Time's Conflux | [`encounters/vault-of-glass/atheon/`](encounters/vault-of-glass/atheon/) |
+## Getting started
 
-## Run it locally
+You need:
 
-Requires Node 20+. There are no dependencies to install.
+- **Rust via [rustup](https://rustup.rs)**. It installs the exact toolchain pinned in `rust-toolchain.toml`, including the WebAssembly target. Homebrew's Rust works for most tasks, but it can't add the WebAssembly target later.
+- **Node 22+** and **pnpm** (`corepack enable`, or see [pnpm.io](https://pnpm.io)). The version is pinned in `package.json`.
+- **[just](https://just.systems)**, the task runner (`brew install just` or `cargo install just`).
 
 ```sh
-npm start        # http://localhost:8080
-npm test         # headless simulation checks
+just setup        # install JS tooling
+just check        # everything CI runs: format, lint, tests, content validation
+just              # list all tasks
 ```
 
-The pages use ES modules, so open them through the dev server. Opening the HTML file directly (`file://`) won't work. three.js loads from the jsDelivr CDN, so you need a connection.
+## Repository layout
 
-## How an encounter page is built
+```
+crates/
+  sim/          deterministic simulation engine (no I/O, no web APIs)
+  raidlint/     validates content against the templates; scaffolds raids and encounters
+content/
+  raids/<raid>/                    raid.json · guide.mdoc · encounters/
+    encounters/<NN>-<encounter>/   encounter.json · guide.mdoc · sources.md · replays/
+templates/      the files every new raid and encounter starts from
+prototype/      the original single-page Atheon trainer (reference until ported)
+```
 
-Each encounter lives in `encounters/<raid>/<encounter>/` and is plain HTML, CSS and JS. There is no build step.
+More crates (`primitives`, `encounters`, `content`, `proto`, `sim-wasm`, `server`) and the `apps/site` web client arrive in later build steps.
 
-| File | What's in it |
+## Adding a raid or an encounter
+
+Never create these files by hand. Scaffold them so every raid and encounter has the same structure:
+
+```sh
+just new-raid kings-fall "King's Fall"
+just new-encounter kings-fall 6 oryx "Oryx, the Taken King"
+```
+
+This creates the folders from `templates/`, fills in ids and names, and keeps `raid.json`'s encounter list in order.
+
+`just content` (part of `just check` and CI) then enforces the template:
+
+- **Folder names:** encounter folders are named `NN-slug`.
+- **Exact files:** each raid and encounter has its required files and nothing else.
+- **JSON keys:** `raid.json` and `encounter.json` have exactly the required top-level keys.
+- **Matching ids:** ids, raids and orders agree between folders, data and guide frontmatter.
+- **Guide sections:** each guide has all required sections in order (12 per encounter, 7 per raid).
+- **Finished files:** no template placeholders are left unfilled, and no `TODO` remains in a guide marked `status: reviewed`.
+
+### Guide sections
+
+| Encounter guide (in order) | Raid guide (in order) |
 |---|---|
-| `index.html` | Page shell, HUD markup, research notes, three.js import map |
-| `<name>.css` | All styles. Dark single theme, Destiny-style HUD |
-| `<name>.js` | Everything else, in labeled sections (below) |
+| TL;DR · Overview · Roles & loadout · Map & callouts · Mechanics glossary · Phase walkthrough · Damage phase · Wipe conditions · Challenges & triumphs · Master / Contest differences · Common mistakes · Practice drills | Overview · Encounter flow · Role matrix · Shared glossary · Loadout & builds · Challenges, triumphs & secret chests · Changelog |
 
-Sections inside `atheon.js`, in order:
+Sections tagged with `{% … /%}` in the templates (roles, callout map, glossary, phase table, damage windows, wipe conditions, difficulty differences, drills) render from `encounter.json`, so the guide and the trainer can't disagree. Write the prose around them, and don't hand-type numbers the data file owns.
 
-1. **Simulation**: arena polygons traced from community maps (map pixels × 0.5 = sim units), walkability grid with A* pathfinding, height levels, roster, phase state machine and bot behavior. Pure logic with no WebGL, which is what the tests drive.
-2. **HUD and overlay**: objective tracker, buffs, boss bar, radar, Ghost guidance, seat picker and wipe screens.
-3. **Audio**: Web Audio, all synthesized, including a distinct tone for each Oracle spot.
-4. **Engine**: three.js r160 scene, materials, arena geometry built from the same polygons as the simulation, particles, post-processing (ambient occlusion, bloom, tone mapping, SMAA, color grade) and automatic quality tiers.
+## Simulation rules
 
-The renderer only reads simulation state (`S`). Gameplay changes go in the simulation section, visual changes in the engine section.
+The simulation must give bit-identical results natively and in WebAssembly, for replays, multiplayer and regression tests. `crates/sim/clippy.toml` makes the main hazards compile errors in CI:
 
-## Tests
+- `std` trig, exp and pow functions (which differ by platform)
+- `mul_add`
+- `HashMap` and `HashSet` (unspecified iteration order)
 
-`npm test` runs `tests/atheon.test.mjs`, which loads the page script with DOM stubs and plays the encounter headless:
+## The Atheon prototype
 
-- Every seat, played correctly, clears 20 out of 20 runs.
-- Each seat left idle wipes for the expected reason. For example, an idle plate holder wipes with "The time gate closed".
+```sh
+just prototype    # http://localhost:8080
+```
 
-Run it before opening a pull request. If you change mechanics or timings, update the expectations in the test.
+`prototype/tests/` drives the prototype headless: every seat played correctly clears 20 out of 20 runs, and each seat left idle wipes for the expected reason. These tests run in `just check` and CI.
 
 ## Contributing
 
-- Branch from `main` and open a pull request. Keep visual and gameplay changes in separate PRs when you can.
-- Check the page in a real browser on a real GPU. Some rendering bugs, like overflowing highlights turning the scene black, only show up on hardware GPUs, not in software rendering.
-- If you change the arena layout, cite your reference (map, video timestamp) in the PR.
+- Branch from `main` and open a pull request. CI runs `fmt`, clippy (warnings are errors), tests, Biome and content validation.
+- Run `just check` before pushing.
+- For arena or mechanic changes, cite your reference (guide, map or video timestamp) in the encounter's `sources.md`. Link and credit; don't copy images into the repo.
+- Check visual changes in a real browser on a real GPU. Some rendering bugs only appear on hardware GPUs.
 
 ## Credits and disclaimer
 
 This is an unofficial fan project, not affiliated with or endorsed by Bungie. Destiny, Vault of Glass and related names belong to Bungie, Inc. No Bungie art, models, fonts or audio are included. Everything is built in code.
 
-Encounter layout references: two community Atheon maps, including one by TheRedDelilah. Mechanics are from community guides ([PCGamesN](https://www.pcgamesn.com/destiny-2/vault-of-glass-guide), [Dexerto](https://www.dexerto.com/destiny/ultimate-destiny-2-vault-of-glass-raid-guide-1578682/), [Destinypedia](https://www.destinypedia.com/Atheon,_Time%27s_Conflux), [Game Rant](https://gamerant.com/destiny-2-how-to-beat-atheon-in-the-vault-of-glass/)). The reference images themselves aren't stored in this repo.
-# destiny-raid-clinic
-# destiny-raid-clinic
+Atheon references: two community Atheon maps, including one by TheRedDelilah. Mechanics are from community guides ([PCGamesN](https://www.pcgamesn.com/destiny-2/vault-of-glass-guide), [Dexerto](https://www.dexerto.com/destiny/ultimate-destiny-2-vault-of-glass-raid-guide-1578682/), [Destinypedia](https://www.destinypedia.com/Atheon,_Time%27s_Conflux), [Game Rant](https://gamerant.com/destiny-2-how-to-beat-atheon-in-the-vault-of-glass/)).

@@ -1,0 +1,6 @@
+# Used by rustup (CI and contributors). Homebrew's Rust ignores this file; workspace MSRV is 1.93.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"

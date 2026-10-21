@@ -1,0 +1,14 @@
+# dependencies / OS
+node_modules/
+target/
+.DS_Store
+*.log
+.env
+
+# AI tooling, process notes and docs stay local
+.claude/
+CLAUDE.md
+AGENTS.md
+.cursor/
+docs/
+.superpowers/

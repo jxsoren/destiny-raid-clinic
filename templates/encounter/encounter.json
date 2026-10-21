@@ -1,0 +1,33 @@
+{
+  "id": "{{encounter_id}}",
+  "raid": "{{raid_id}}",
+  "order": 0,
+  "name": "{{encounter_name}}",
+  "version": 1,
+  "arena": {
+    "units": "sim",
+    "levels": [],
+    "walkable": [],
+    "walls": [],
+    "obstacles": [],
+    "stairs": [],
+    "rooms": []
+  },
+  "markers": [],
+  "roles": [],
+  "enemies": [],
+  "phases": [],
+  "mechanics": [],
+  "wipe_conditions": [],
+  "damage": {
+    "windows": [],
+    "boss_health": null,
+    "enrage": null
+  },
+  "drills": [],
+  "difficulty": {
+    "master": {},
+    "contest": {}
+  },
+  "sources": []
+}
