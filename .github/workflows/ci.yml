@@ -41,6 +41,7 @@ jobs:
       - run: pnpm --filter @raid-clinic/ui exec tsc -p . --noEmit
       - run: pnpm --filter site check
       - run: pnpm --filter @raid-clinic/ui test
+      - run: pnpm --filter site test
       - run: pnpm --filter site build
       - run: pnpm --filter site exec playwright install --with-deps chromium
       - run: pnpm --filter site exec playwright test

@@ -1,0 +1,18 @@
+{
+  "id": "gamma",
+  "name": "Gamma Raid",
+  "released": "2024-01-01",
+  "planet": {
+    "surface": "pale",
+    "tint": "#d9d3e6",
+    "atmosphere": "#efe6ff",
+    "ring": false,
+    "size": 1,
+    "position": [0.4, 0.7],
+    "location": "The Pale Heart",
+    "tagline": ""
+  },
+  "encounters": [],
+  "glossary": [],
+  "sources": []
+}

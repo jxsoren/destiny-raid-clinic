@@ -36,6 +36,7 @@ lint: lint-styles
 test:
     cargo test --workspace
     pnpm --filter @raid-clinic/ui test
+    pnpm --filter site test
     pnpm run test:scripts
     pnpm run test:prototype
 
