@@ -1,26 +1,40 @@
 ---
-import { Divider, ItemHeader } from '@raid-clinic/ui';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import type { ScenePlanet } from '@raid-clinic/ui/space';
+import { SpaceScene } from '@raid-clinic/ui/space';
+import '@raid-clinic/ui/space.css';
 import Base from '../layouts/Base.astro';
+
+// content/raids/<raid-id>/raid.json is the single source of truth for both this Director
+// view and the Rust content pipeline (see docs/ARCHITECTURE.md section 5). Read directly
+// rather than duplicating the data into apps/site. `process.cwd()` (astro's project root,
+// apps/site) is used instead of `import.meta.url`, which the bundler rewrites to a
+// prerender chunk path at a different depth than the source file.
+const raidsDir = join(process.cwd(), '../../content/raids/');
+const planets: ScenePlanet[] = readdirSync(raidsDir, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => {
+    const raid = JSON.parse(readFileSync(join(raidsDir, entry.name, 'raid.json'), 'utf8'));
+    const playable = (raid.encounters ?? []).length > 0;
+    return {
+      id: raid.id,
+      name: raid.name,
+      planet: raid.planet,
+      status: [playable ? 'playable' : 'soon'],
+      featured: playable,
+    } satisfies ScenePlanet;
+  });
 ---
 
-<Base title="Raid Clinic">
-  <main class="placeholder">
-    <ItemHeader tile="logo" name="Raid Clinic" type="Raid trainer" flavor="Learn it before the pull." />
-    <Divider />
-    <p>
-      The raid Director is being built. Until then, see the <a href="/styleguide">styleguide</a>, or run{' '}
-      <code>just prototype</code> for the Atheon trainer.
-    </p>
+<Base title="Raid Clinic" description="Pick a raid on the Director. Bots run the other seats, and every wipe explains what went wrong.">
+  <main class="director">
+    <SpaceScene client:only="solid-js" planets={planets} label="Raids" />
   </main>
 </Base>
 
 <style>
-  .placeholder {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 48px 16px;
-  }
-  a {
-    color: var(--glow);
+  .director {
+    height: 100vh;
   }
 </style>
