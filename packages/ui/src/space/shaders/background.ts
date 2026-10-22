@@ -11,7 +11,7 @@ export interface Background {
   /** Cover the camera frustum: center and half extents in world units. */
   setFrame(cx: number, cy: number, halfW: number, halfH: number): void;
   setTime(seconds: number): void;
-  /** Parallax shift in uv units. */
+  /** Parallax shift, added after aspect scaling: x and y are both fractions of the frame height. */
   setOffset(x: number, y: number): void;
   dispose(): void;
 }

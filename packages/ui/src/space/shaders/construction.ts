@@ -9,13 +9,20 @@ import {
   LineSegments,
   Vector2,
 } from 'three/webgpu';
-import { circle } from './geometry';
+import { circle, disposeObject } from './geometry';
 import { LINE } from './palette';
 
 const points = (pts: [number, number][]) =>
   new BufferGeometry().setFromPoints(pts.map(([x, y]) => new Vector2(x, y)));
 
-export function createConstruction(aspect: number): Group {
+export interface Construction {
+  group: Group;
+  /** Fit the horizontal crosshair and edge diamonds to the viewport aspect (width / height). */
+  setAspect(aspect: number): void;
+  dispose(): void;
+}
+
+export function createConstruction(): Construction {
   const group = new Group();
   const solid = new LineBasicNodeMaterial({
     color: LINE,
@@ -32,37 +39,51 @@ export function createConstruction(aspect: number): Group {
     depthTest: false,
   });
 
-  group.add(
-    new LineSegments(
-      points([
-        [-aspect, 0],
-        [aspect, 0],
-        [0, -1],
-        [0, 1],
-      ]),
-      solid,
-    ),
+  // Built once at aspect 1; setAspect only scales/moves these two.
+  const horizontal = new LineSegments(
+    points([
+      [-1, 0],
+      [1, 0],
+    ]),
+    solid,
   );
+  const vertical = new LineSegments(
+    points([
+      [0, -1],
+      [0, 1],
+    ]),
+    solid,
+  );
+  group.add(horizontal, vertical);
   group.add(new Line(circle(0.82), solid));
   const ring = new Line(circle(0.6), dashed);
   ring.computeLineDistances();
   group.add(ring);
+  const diamonds: Line[] = [];
+  const s = 0.03;
   for (const side of [-1, 1]) {
-    const x = side * (aspect - 0.07);
-    const s = 0.03;
-    group.add(
-      new Line(
-        points([
-          [x, s],
-          [x + s, 0],
-          [x, -s],
-          [x - s, 0],
-          [x, s],
-        ]),
-        solid,
-      ),
+    // Closed with a repeated first point: the node renderer has no LineLoop.
+    const diamond = new Line(
+      points([
+        [0, s],
+        [s, 0],
+        [0, -s],
+        [-s, 0],
+        [0, s],
+      ]),
+      solid,
     );
+    diamond.userData.side = side;
+    diamonds.push(diamond);
+    group.add(diamond);
   }
   group.position.z = -10;
-  return group;
+
+  const setAspect = (aspect: number) => {
+    horizontal.scale.x = aspect;
+    for (const d of diamonds) d.position.x = (d.userData.side as number) * (aspect - 0.07);
+  };
+  setAspect(1);
+
+  return { group, setAspect, dispose: () => disposeObject(group) };
 }

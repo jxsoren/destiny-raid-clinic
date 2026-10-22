@@ -14,8 +14,7 @@ import {
 import type { Quality } from './quality';
 import { hashSeed } from './rng';
 import { type Background, createBackground } from './shaders/background';
-import { createConstruction } from './shaders/construction';
-import { disposeObject } from './shaders/geometry';
+import { type Construction, createConstruction } from './shaders/construction';
 import { createPlanet, type PlanetVisual, SPIN } from './shaders/planet';
 import { createStars, type StarLayer } from './shaders/stars';
 import { generateStars } from './stars';
@@ -47,7 +46,12 @@ export class SpaceRenderer {
       antialias: true,
       forceWebGL: options.forceWebGL ?? false,
     });
-    await renderer.init();
+    try {
+      await renderer.init();
+    } catch (error) {
+      renderer.dispose();
+      throw error;
+    }
     const backend = renderer.backend as {
       isWebGPUBackend?: boolean;
       device?: unknown;
@@ -67,7 +71,7 @@ export class SpaceRenderer {
   private readonly background: Background;
   private readonly stars: StarLayer;
   private readonly brightStars: StarLayer;
-  private construction: Group | null = null;
+  private readonly construction: Construction;
   private readonly planets = new Map<string, Entry>();
   private readonly listeners = new Set<(screens: PlanetScreen[]) => void>();
   private lastScreens: PlanetScreen[] = [];
@@ -97,6 +101,8 @@ export class SpaceRenderer {
       generateStars(options.seed + 1, options.quality.brightStars, [9, 15]),
       true,
     );
+    this.construction = createConstruction();
+    this.layers.back.add(this.construction.group);
     this.layers.stars.add(this.stars.sprite, this.brightStars.sprite);
     this.scene.add(this.background.mesh, this.layers.back, this.layers.stars, this.layers.planets);
   }
@@ -112,7 +118,15 @@ export class SpaceRenderer {
       }
     }
     for (const data of list) {
-      const key = JSON.stringify([data.planet, Boolean(data.featured)]);
+      const p = data.planet;
+      const key = JSON.stringify([
+        p.surface,
+        p.tint,
+        p.atmosphere,
+        p.ring,
+        p.size,
+        Boolean(data.featured),
+      ]);
       const prev = this.planets.get(data.id);
       if (prev && prev.key === key) {
         prev.data = data;
@@ -146,12 +160,7 @@ export class SpaceRenderer {
     this.background.setAspect(aspect);
     this.stars.setAspect(aspect);
     this.brightStars.setAspect(aspect);
-    if (this.construction) {
-      this.layers.back.remove(this.construction);
-      disposeObject(this.construction);
-    }
-    this.construction = createConstruction(aspect);
-    this.layers.back.add(this.construction);
+    this.construction.setAspect(aspect);
     this.placePlanets();
     this.applyView();
     this.lastScreens = [];
@@ -203,7 +212,7 @@ export class SpaceRenderer {
     this.background.dispose();
     this.stars.dispose();
     this.brightStars.dispose();
-    if (this.construction) disposeObject(this.construction);
+    this.construction.dispose();
     this.listeners.clear();
     this.renderer.dispose();
   }
@@ -249,7 +258,8 @@ export class SpaceRenderer {
     this.layers.planets.position.set(sx * worldPerPx, -sy * worldPerPx, 0);
     this.layers.stars.position.set(sx * 0.4 * worldPerPx, -sy * 0.4 * worldPerPx, 0);
     this.layers.back.position.set(sx * 0.15 * worldPerPx, -sy * 0.15 * worldPerPx, 0);
-    this.background.setOffset((-sx * 0.1) / this.width, (sy * 0.1) / this.height);
+    // The shader adds the offset after scaling x by aspect, so x is in height units like y.
+    this.background.setOffset((-sx * 0.1) / this.height, (sy * 0.1) / this.height);
 
     const spin = this.motion ? dt * SPIN : 0;
     for (const { visual } of this.planets.values()) visual.update(this.elapsed, spin);
