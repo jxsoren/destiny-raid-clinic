@@ -1098,10 +1098,16 @@ async function initEngine(){
     const markM = new THREE.MeshBasicMaterial({color:hdr(0xff4a3a, 2), transparent:true, opacity:.7, side:THREE.DoubleSide, depthWrite:false});
     const mark = new THREE.Mesh(new THREE.RingGeometry(10.8/1.75, 11/1.75, 96), markM); mark.rotation.x = -Math.PI/2; mark.position.y = .06; mark.visible = false; root.add(mark);
     scene.add(root);
-    const tag = document.createElement('div'); tag.className = 'tag'; tagsEl.appendChild(tag);
-    return {root, hips, legs, arms, torso, headG, muzzle, ringM, bubble, mark, markM, tag, phase:Math.random()*6, yaw:0, lx:p.x, ly:p.y, aimT:0, hh:0};
+    const tag = document.createElement('div'); tag.className = 'tag'; tag.style.setProperty('--c', p.color); tagsEl.appendChild(tag);
+    return {root, hips, legs, arms, torso, headG, muzzle, ring, ringM, bubble, mark, markM, tag, phase:Math.random()*6, yaw:0, lx:p.x, ly:p.y, aimT:0, hh:0};
   }
   const G = S.players.map(makeGuardian);
+  // Your marker: a chevron over your head drawn on top of everything (readable in a crowd) and a ring
+  // that pulses out from your feet, both in your seat color.
+  const youMarkM = new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, depthTest:false, depthWrite:false});
+  const youMark = new THREE.Mesh(new THREE.ConeGeometry(.42, .75, 4), youMarkM); youMark.rotation.x = Math.PI; youMark.renderOrder = 10; youMark.visible = false; scene.add(youMark);
+  const youPulseM = new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending});
+  const youPulse = new THREE.Mesh(new THREE.RingGeometry(.6, .78, 48), youPulseM); youPulse.rotation.x = -Math.PI/2; youPulse.visible = false; scene.add(youPulse);
   const youBeam = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, 30, 6, 1, true), new THREE.MeshBasicMaterial({color:hdr(0xffffff,1.5), transparent:true, opacity:.2, blending:THREE.AdditiveBlending, depthWrite:false})); youBeam.visible = false; scene.add(youBeam);
   const tapMark = new THREE.Mesh(new THREE.RingGeometry(.5, .7, 32), new THREE.MeshBasicMaterial({color:hdr(0xffffff,1.5), transparent:true, opacity:.7, side:THREE.DoubleSide})); tapMark.rotation.x = -Math.PI/2; tapMark.visible = false; scene.add(tapMark);
   const mkNum = (o, i, h) => { const d = document.createElement('div'); d.className = 'otag'; d.textContent = i+1; tagsEl.appendChild(d); return {d, v:V(o.x, o.y, h)}; };
@@ -1379,7 +1385,7 @@ async function initEngine(){
       g.muzzle.visible = !!aim && Math.random() < .5; if (g.muzzle.visible) g.muzzle.scale.setScalar(.4 + Math.random()*.5);
       g.bubble.visible = p.detained; if (p.detained) g.bubble.material.uniforms.uI.value = 1 + 1.2*(p.bub/70);
       g.mark.visible = S.marked===p && S.detainT > 0; if (g.mark.visible) g.markM.opacity = .45 + .4*Math.sin(T*10);
-      g.ringM.opacity = p.you ? 1 : .55;
+      g.ringM.opacity = p.you ? 1 : .35; g.ring.scale.setScalar(p.you ? 1.35 : 1);
       g.root.visible = !(p.loc==='room' && !active && S.phase!=='teleport');
       proj.copy(g.root.position); proj.y += 4.2; proj.project(camera);
       const hidden = you && !watch && S.phase==='away' && p.loc==='room' && you.loc==='vault';
@@ -1387,7 +1393,7 @@ async function initEngine(){
       g.tag.style.display = show ? 'flex' : 'none';
       const vm = p.loc==='room' ? `<span style="display:inline-block;width:28px;height:3px;background:rgba(255,255,255,.2);position:relative;margin-left:4px"><span style="position:absolute;inset:0 auto 0 0;width:${Math.round(p.meter*100)}%;background:${p.meter>.7?'#ff6a55':'#9b7cff'}"></span></span>` : '';
       const cls = 'tag' + (p.you ? ' you' : ''); if (g.tag.className !== cls){ g.tag.className = cls; g.tag._sw = 0; }
-      const html = `<i style="background:${p.color}"></i>${p.you ? 'YOU' : p.tag}${vm}`; if (g.tag._h !== html){ g.tag.innerHTML = html; g.tag._h = html; g.tag._sw = 0; }
+      const html = `${p.you ? '<i></i>YOU' : `<i style="background:${p.color}"></i>${p.tag}`}${vm}`; if (g.tag._h !== html){ g.tag.innerHTML = html; g.tag._h = html; g.tag._sw = 0; }
       if (!show) return;
       // measure only when the content or the game width (tag font follows it) changes
       if (g.tag._sw !== W2){ g.tag._w = g.tag.offsetWidth; g.tag._ht = g.tag.offsetHeight; g.tag._sw = W2; }
@@ -1396,6 +1402,13 @@ async function initEngine(){
     for (const t of spreadTags(tagItems)){ const el = G[t.i].tag; el.style.left = `${t.x}px`; el.style.top = `${t.y}px`; }
     youBeam.visible = !!(you && !watch);
     if (youBeam.visible){ youBeam.position.copy(V(you.x, you.y, 15)); youBeam.material.opacity = .12 + Math.sin(T*3)*.05; }
+    const yg = you && !watch ? G[S.players.indexOf(you)] : null;
+    youMark.visible = youPulse.visible = !!(yg && yg.root.visible);
+    if (youMark.visible){
+      youMarkM.color.copy(hdr(you.color, 2.4)); youPulseM.color.copy(hdr(you.color, 2));
+      youMark.position.copy(yg.root.position); youMark.position.y += 3.1 + Math.sin(T*4)*.18; youMark.rotation.y = T*1.5;
+      const k = (T*.8) % 1; youPulse.position.copy(yg.root.position); youPulse.position.y += .04; youPulse.scale.setScalar(1 + k*2.2); youPulseM.opacity = .9*(1 - k);
+    }
     tapMark.visible = !!tap; if (tap){ tapMark.position.copy(V(tap.x, tap.y, .1)); tapMark.scale.setScalar(1 + Math.sin(T*8)*.1); }
     const placeNum = (n, show) => { n.d.style.display = show ? 'block' : 'none'; if (!show) return; proj.copy(n.v).project(camera); n.d.style.left = `${(proj.x+1)/2*W2}px`; n.d.style.top = `${(1-proj.y)/2*H2}px`; };
     vNums.forEach(n => placeNum(n, youSee('vault')));
