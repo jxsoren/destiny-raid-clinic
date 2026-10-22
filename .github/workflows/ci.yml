@@ -44,4 +44,11 @@ jobs:
       - run: pnpm --filter site build
       - run: pnpm --filter site exec playwright install --with-deps chromium
       - run: pnpm --filter site exec playwright test
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: apps/site/test-results/
+          retention-days: 7
       - run: pnpm run test:prototype

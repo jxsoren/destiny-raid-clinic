@@ -269,7 +269,9 @@ export class SpaceRenderer {
 
     this.renderer.render(this.scene, this.camera);
     this.frames += 1;
-    if (this.frames % 30 === 0) this.renderer.domElement.dataset.frames = String(this.frames);
+    // Exposed for browser tests: the first frame (shaders compiled), then every 30th.
+    if (this.frames === 1 || this.frames % 30 === 0)
+      this.renderer.domElement.dataset.frames = String(this.frames);
 
     this.emitScreens(sx, sy);
   };
