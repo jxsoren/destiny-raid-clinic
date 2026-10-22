@@ -7,6 +7,7 @@ export { KeyGlyph } from './KeyGlyph';
 export { Logo } from './Logo';
 export { PerkNode, type PerkState } from './PerkNode';
 export { PhaseHeading } from './PhaseHeading';
+export { isCoarsePointer, type Prompt, PromptBar } from './PromptBar';
 export {
   overlapArea,
   type Placement,
