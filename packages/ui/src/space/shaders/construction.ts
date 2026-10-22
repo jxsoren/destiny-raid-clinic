@@ -6,7 +6,6 @@ import {
   Line,
   LineBasicNodeMaterial,
   LineDashedNodeMaterial,
-  LineLoop,
   LineSegments,
   Vector2,
 } from 'three/webgpu';
@@ -44,7 +43,7 @@ export function createConstruction(aspect: number): Group {
       solid,
     ),
   );
-  group.add(new LineLoop(circle(0.82), solid));
+  group.add(new Line(circle(0.82), solid));
   const ring = new Line(circle(0.6), dashed);
   ring.computeLineDistances();
   group.add(ring);
@@ -52,12 +51,13 @@ export function createConstruction(aspect: number): Group {
     const x = side * (aspect - 0.07);
     const s = 0.03;
     group.add(
-      new LineLoop(
+      new Line(
         points([
           [x, s],
           [x + s, 0],
           [x, -s],
           [x - s, 0],
+          [x, s],
         ]),
         solid,
       ),

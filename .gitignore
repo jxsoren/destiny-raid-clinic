@@ -4,6 +4,8 @@ target/
 .DS_Store
 *.log
 .env
+apps/site/test-results/
+apps/site/playwright-report/
 
 # AI tooling, process notes and docs stay local (shared Claude skills are tracked)
 .claude/*

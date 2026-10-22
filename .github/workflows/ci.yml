@@ -42,4 +42,6 @@ jobs:
       - run: pnpm --filter site check
       - run: pnpm --filter @raid-clinic/ui test
       - run: pnpm --filter site build
+      - run: pnpm --filter site exec playwright install --with-deps chromium
+      - run: pnpm --filter site exec playwright test
       - run: pnpm run test:prototype

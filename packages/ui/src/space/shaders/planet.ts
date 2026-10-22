@@ -25,7 +25,6 @@ import {
   Line,
   LineBasicNodeMaterial,
   LineDashedNodeMaterial,
-  LineLoop,
   Mesh,
   MeshBasicNodeMaterial,
   type Node,
@@ -209,7 +208,7 @@ export function createPlanet(
     opacity: 0.16,
     depthTest: false,
   });
-  group.add(new LineLoop(circle(HALO), haloMaterial));
+  group.add(new Line(circle(HALO), haloMaterial));
   if (options.featured) {
     const dashMaterial = new LineDashedNodeMaterial({
       color: LINE,
