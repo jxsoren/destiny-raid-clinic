@@ -568,11 +568,14 @@ $('bRoles').onclick = () => { paused = true; showOverlay('start'); };
 
 // Player tag declutter (screen px). Items are {x, y, w, h, pin} with (x, y) the tag's bottom-center anchor.
 // Pinned tags (yours) stay put; the rest keep their input order and stack upward past anything they
-// overlap, so nearby tags never cover each other and don't swap places frame to frame. Moves y in place.
+// overlap, so nearby tags never cover each other and don't swap places frame to frame.
+// Mutates each item's .y in place AND returns the (same) items array — callers may use either.
+// The retry bound (placed.length + 1 attempts) is enough to settle a fireteam-sized set (≤6 tags);
+// it is not a general convergence guarantee for arbitrarily large or pathological layouts.
 function spreadTags(items, gap = 2){
   const placed = [];
   for (const t of [...items].sort((a, b) => (b.pin|0) - (a.pin|0))){
-    for (let n = 0; n <= placed.length; n++){
+    for (let attempt = 0; attempt <= placed.length; attempt++){
       const hit = placed.find(p => Math.abs(t.x - p.x) < (t.w + p.w)/2 + gap && t.y > p.y - p.h - gap && t.y - t.h - gap < p.y);
       if (!hit) break;
       t.y = hit.y - hit.h - gap;

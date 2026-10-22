@@ -69,6 +69,23 @@ test('tags: the same input always gives the same layout', () => {
   assert.deepEqual(sim.spreadTags(input()), sim.spreadTags(input()));
 });
 
+test('tags: two overlapping pinned tags both still move apart', () => {
+  const tags = sim.spreadTags([tag(100, 200, true), tag(102, 201, true)]);
+  assert.ok(!overlaps(tags[0], tags[1]), 'pinned tags must not overlap each other');
+});
+
+test('tags: tags exactly at the x-overlap threshold are left alone', () => {
+  // x-gap exactly at (w1+w2)/2 + gap (62) is not "< threshold", so this does not count as an overlap.
+  const tags = [tag(100, 200), tag(162, 200)];
+  assert.deepEqual(sim.spreadTags(tags.map(t => ({...t}))), tags);
+});
+
+test('tags: a larger gap pushes overlapping tags further apart', () => {
+  const [tightA] = sim.spreadTags([tag(100, 200), tag(100, 200, true)], 2);
+  const [wideA] = sim.spreadTags([tag(100, 200), tag(100, 200, true)], 20);
+  assert.ok(wideA.y < tightA.y, 'a bigger gap should push the non-pinned tag further up');
+});
+
 const IDLE_WIPES = {
   relic: 'You were consumed by the Void',
   shooter: 'An Oracle finished its song',

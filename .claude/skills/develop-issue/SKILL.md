@@ -27,6 +27,8 @@ see_also:
     when: "invoked internally to produce the implementation plan"
   - name: /executing-plans
     when: "invoked internally to execute the plan"
+  - name: /review-code
+    when: "invoked internally after implementation, before the UI preview/report steps"
 ---
 
 # Develop Issue
@@ -159,6 +161,14 @@ git -C tmp/worktrees/<branch-slug> rm ISSUE_ANALYSIS.md
 git -C tmp/worktrees/<branch-slug> commit -m "#<number>: Remove issue analysis after implementation"
 ```
 
+## Step 8.1 — Review Code
+
+Invoke `/review-code` (run it from inside the worktree, `git -C tmp/worktrees/<branch-slug> ...` for its diff/file commands) to get an architectural review of the implementation before it's reported as done.
+
+- If it reports **Must Fix** items, surface them to the user and ask whether to address them now or proceed anyway. Don't silently skip them.
+- **Should Discuss**/**Consider** items: summarize briefly in the final report (Step 9); don't block on them or run the full Phase 2 discussion loop unless the user wants to.
+- If the review file was written to `.claude/docs/plans/active/<feature-slug>/`, mention its path in the final report.
+
 ## Step 8.5 — UI Fix Preview Comment
 
 Check whether the issue touched UI: any changed file under a frontend path (e.g. components, views, pages, styles) or the `ISSUE_ANALYSIS.md` Affected Areas mentioning UI/frontend. If not a UI fix, skip to Step 9.
@@ -216,6 +226,7 @@ Branch:    <branch-name>
 Worktree:  tmp/worktrees/<branch-slug>
            (remove with `git worktree remove tmp/worktrees/<branch-slug>`)
 Plan:      .claude/docs/plans/active/<feature-slug>/<plan-file>
+Review:    .claude/docs/plans/active/<feature-slug>/<feature-slug>-review.md (or inline summary)
 Draft PR:  <url>
 
 All tasks complete. Review the Draft PR when ready — mark ready for review manually.
@@ -233,3 +244,4 @@ All tasks complete. Review the Draft PR when ready — mark ready for review man
 - **If `/writing-plans` returns DRAFT** — surface blockers, do not proceed.
 - **At any Review checkpoint in `/executing-plans`** — stop and wait.
 - **Override is a last resort** — if confidence is overridden, note unresolved questions in the plan's Non-goals.
+- **Don't skip Step 8.1** — even a quick review catches issues before they reach the PR; Must Fix findings need explicit user acknowledgment, not silent pass-through.
