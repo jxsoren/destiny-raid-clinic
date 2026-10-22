@@ -50,6 +50,8 @@ just new-encounter kings-fall 6 oryx "Oryx, the Taken King"
 
 This creates the folders from `templates/`, fills in ids and names, and keeps `raid.json`'s encounter list in order.
 
+A new raid appears on the Director (the home page) automatically, dimmed until a trainer exists for one of its encounters.
+
 `just content` (part of `just check` and CI) then enforces the template:
 
 - **Folder names:** encounter folders are named `NN-slug`.

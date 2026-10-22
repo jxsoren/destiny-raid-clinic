@@ -104,6 +104,11 @@ Every space screen (the Director, raid pages) uses `SpaceScene` from `@raid-clin
   - The title block "RAIDS" sits bottom-left, the wordmark bottom-right, and floating prompts `F Select` and `/ Search` sit bottom-center.
   - There is no top nav.
   - Raids with nothing playable are dimmed.
+  - The Director reads every `content/raids/*/raid.json` at build time through `apps/site/src/lib/raids.ts`.
+  - A raid is playable when one of its encounters is listed in `apps/site/src/data/trainers.json`.
+  - A guide counts as ready when its frontmatter `status` isn't `draft`.
+  - The featured raid is the newest playable one.
+  - Taglines must be the raid's real, sourced line, or empty. Never invented.
 - **Raid page:**
   - The raid's planet sits large on the right.
   - The encounters are perk nodes along a dotted path in raid order.
