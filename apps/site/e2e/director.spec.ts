@@ -93,3 +93,24 @@ test("the tooltip stays off the selected planet's own label", async ({ page }) =
     t.x < l.x + l.width && l.x < t.x + t.width && t.y < l.y + l.height && l.y < t.y + t.height;
   expect(intersects).toBe(false);
 });
+
+test.describe('portrait phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("the tooltip stays off the selected planet's own label", async ({ page }) => {
+    // Vault of Glass is the featured raid, so it starts selected (clicking it would open it).
+    await expect(page.getByRole('button', { name: /^Vault of Glass/ })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    const label = page.locator('[data-planet="vault-of-glass"] .rc-planet__label');
+    await label.waitFor({ state: 'attached' });
+    const tip = page.getByRole('tooltip');
+    await expect(tip).toContainText('Vault of Glass');
+    const [t, l] = await Promise.all([tip.boundingBox(), label.boundingBox()]);
+    if (!t || !l) throw new Error('tooltip or label has no bounding box');
+    const intersects =
+      t.x < l.x + l.width && l.x < t.x + t.width && t.y < l.y + l.height && l.y < t.y + t.height;
+    expect(intersects).toBe(false);
+  });
+});

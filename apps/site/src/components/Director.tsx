@@ -71,6 +71,29 @@ export function Director(props: {
     }));
   });
 
+  const labelBeside = (o: PlanetScreen): Rect => ({
+    x: o.labelX,
+    y: o.labelY - LABEL_H / 2,
+    w: LABEL_W,
+    h: LABEL_H,
+  });
+  /** Portrait: the label is centered under the planet, shifted left by its x fraction (see CSS). */
+  const labelBelow = (o: PlanetScreen): Rect => {
+    const px = planets().find((p) => p.id === o.id)?.planet.position[0] ?? 0.5;
+    return { x: o.x - px * LABEL_W, y: o.y + o.r * 1.5 + 6, w: LABEL_W, h: LABEL_H };
+  };
+  /** The active planet's label: measured from the DOM when present, else the computed box. */
+  const activeLabel = (id: string, s: PlanetScreen): Rect => {
+    const r = root
+      ?.querySelector(`[data-planet="${id}"] .rc-planet__label`)
+      ?.getBoundingClientRect();
+    const origin = root?.getBoundingClientRect();
+    if (r && origin && r.width > 0 && r.height > 0) {
+      return { x: r.left - origin.left, y: r.top - origin.top, w: r.width, h: r.height };
+    }
+    return portrait() ? labelBelow(s) : labelBeside(s);
+  };
+
   const active = () => hovered() ?? selected();
   const tip = createMemo(() => {
     const id = active();
@@ -78,15 +101,22 @@ export function Director(props: {
     const raid = id ? raids().get(id) : undefined;
     if (!s || !raid || size().w === 0) return null;
     const target: Rect = { x: s.x - s.r, y: s.y - s.r, w: s.r * 2, h: s.r * 2 };
-    const avoid: Rect[] = [
-      { x: s.labelX, y: s.labelY - LABEL_H / 2, w: LABEL_W, h: LABEL_H },
-      ...screens()
-        .filter((o) => o.id !== id)
-        .flatMap((o) => [
-          { x: o.x - o.r, y: o.y - o.r, w: o.r * 2, h: o.r * 2 },
-          { x: o.labelX, y: o.labelY - LABEL_H / 2, w: LABEL_W, h: LABEL_H },
-        ]),
-    ];
+    const body = (o: PlanetScreen): Rect => ({
+      x: o.x - o.r,
+      y: o.y - o.r,
+      w: o.r * 2,
+      h: o.r * 2,
+    });
+    const others = screens().filter((o) => o.id !== id);
+    const label = activeLabel(s.id, s);
+    // Portrait hides every label but the selected one, which sits below its planet; elsewhere
+    // all labels are visible beside their planets.
+    const avoid: Rect[] = portrait()
+      ? [
+          ...(id === selected() ? [label] : []),
+          ...others.flatMap((o) => (o.id === selected() ? [body(o), labelBelow(o)] : [body(o)])),
+        ]
+      : [label, ...others.flatMap((o) => [body(o), labelBeside(o)])];
     return { raid, target, avoid };
   });
 
