@@ -1,6 +1,7 @@
 // Full-frame background: void, nebula washes, dust, a soft beam from the top center and a vignette (spec §4).
 import { abs, clamp, exp, float, length, smoothstep, uniform, uv, vec2, vec3 } from 'three/tsl';
-import { Color, Mesh, MeshBasicNodeMaterial, PlaneGeometry, Vector2, Vector3 } from 'three/webgpu';
+import { Mesh, MeshBasicNodeMaterial, PlaneGeometry, Vector2 } from 'three/webgpu';
+import { rgb } from './color';
 import { fbm } from './noise';
 import { BEAM, NEBULA, VOID } from './palette';
 
@@ -14,12 +15,6 @@ export interface Background {
   setOffset(x: number, y: number): void;
   dispose(): void;
 }
-
-/**
- * A hex color as a linear-space vec3 constant: the same value TSL `color(hex)` gives, but typed vec3,
- * because @types/three only lets a `color` node combine with float or color operands, not vec3.
- */
-const rgb = (hex: string) => vec3(new Vector3().setFromColor(new Color(hex)));
 
 export function createBackground(seed: number, octaves: number): Background {
   const uAspect = uniform(1);
