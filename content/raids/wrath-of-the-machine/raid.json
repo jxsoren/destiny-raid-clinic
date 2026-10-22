@@ -1,0 +1,18 @@
+{
+  "id": "wrath-of-the-machine",
+  "name": "Wrath of the Machine",
+  "released": "2016-09-23",
+  "planet": {
+    "surface": "desert",
+    "tint": "#9a6b4a",
+    "atmosphere": "#d9a27a",
+    "ring": false,
+    "size": 0.85,
+    "position": [0.1, 0.45],
+    "location": "Old Russia",
+    "tagline": ""
+  },
+  "encounters": [],
+  "glossary": [],
+  "sources": []
+}

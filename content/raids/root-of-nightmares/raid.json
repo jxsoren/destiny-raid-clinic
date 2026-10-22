@@ -1,0 +1,18 @@
+{
+  "id": "root-of-nightmares",
+  "name": "Root of Nightmares",
+  "released": "2023-03-10",
+  "planet": {
+    "surface": "gas",
+    "tint": "#4d73c4",
+    "atmosphere": "#a8c8ff",
+    "ring": false,
+    "size": 1.15,
+    "position": [0.84, 0.66],
+    "location": "Neptune",
+    "tagline": ""
+  },
+  "encounters": [],
+  "glossary": [],
+  "sources": []
+}

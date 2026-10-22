@@ -1,0 +1,18 @@
+{
+  "id": "crotas-end",
+  "name": "Crota's End",
+  "released": "2014-12-09",
+  "planet": {
+    "surface": "moon",
+    "tint": "#bdbdb6",
+    "atmosphere": "#e6e6e0",
+    "ring": false,
+    "size": 0.85,
+    "position": [0.16, 0.66],
+    "location": "The Moon",
+    "tagline": ""
+  },
+  "encounters": [],
+  "glossary": [],
+  "sources": []
+}

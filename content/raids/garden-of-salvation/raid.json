@@ -1,0 +1,18 @@
+{
+  "id": "garden-of-salvation",
+  "name": "Garden of Salvation",
+  "released": "2019-10-05",
+  "planet": {
+    "surface": "lush-dark",
+    "tint": "#3e5a3c",
+    "atmosphere": "#7fb38a",
+    "ring": false,
+    "size": 0.9,
+    "position": [0.56, 0.18],
+    "location": "The Black Garden",
+    "tagline": ""
+  },
+  "encounters": [],
+  "glossary": [],
+  "sources": []
+}

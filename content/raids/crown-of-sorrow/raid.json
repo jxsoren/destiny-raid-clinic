@@ -1,0 +1,18 @@
+{
+  "id": "crown-of-sorrow",
+  "name": "Crown of Sorrow",
+  "released": "2019-06-04",
+  "planet": {
+    "surface": "venus",
+    "tint": "#a8823c",
+    "atmosphere": "#e8c070",
+    "ring": false,
+    "size": 0.9,
+    "position": [0.62, 0.64],
+    "location": "Nessus orbit",
+    "tagline": ""
+  },
+  "encounters": [],
+  "glossary": [],
+  "sources": []
+}
