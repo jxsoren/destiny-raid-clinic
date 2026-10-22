@@ -1,0 +1,330 @@
+/* Component styles. Colors and fonts come only from tokens.css (enforced by scripts/lint-styles.mjs). */
+
+/* Key glyph */
+.rc-key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: var(--prompt-ink);
+  color: var(--prompt);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Buttons */
+.rc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.rc-btn--primary {
+  padding: 12px 20px;
+  background: var(--ink);
+  color: var(--ink-dark);
+  font-weight: 700;
+}
+.rc-btn--secondary {
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--frame);
+}
+.rc-btn--round {
+  width: 26px;
+  height: 26px;
+  justify-content: center;
+  padding: 0;
+  border: 2px solid var(--frame);
+  border-radius: 9999px;
+  background: var(--round-bg);
+  color: var(--ink);
+}
+.rc-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Divider */
+.rc-divider {
+  max-width: 700px;
+  margin: 16px 0;
+  border: 0;
+  border-top: 2px solid var(--divider);
+}
+
+/* Status icons (next to planet labels) */
+.rc-status {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--divider);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 8px;
+}
+.rc-status--playable {
+  border-color: var(--perk-blue);
+}
+.rc-status--soon {
+  opacity: 0.5;
+}
+
+/* Perk nodes */
+.rc-perk {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 15px;
+}
+.rc-perk--playable {
+  background: var(--perk-blue);
+}
+.rc-perk--guide {
+  background: var(--perk-pale);
+  color: var(--perk-pale-ink);
+}
+.rc-perk--soon {
+  background: var(--perk-ghost);
+  border: 2px solid var(--perk-ghost-edge);
+  color: var(--perk-ghost-ink);
+}
+.rc-perk--done {
+  background: var(--done);
+}
+.rc-perk--selected {
+  outline: 3px solid var(--frame);
+  outline-offset: 3px;
+}
+
+/* Selection brackets (D1 corner brackets around planets) */
+.rc-brackets {
+  position: relative;
+  display: block;
+  pointer-events: none;
+}
+.rc-brackets i {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--frame);
+}
+.rc-brackets i:nth-child(1) {
+  left: 0;
+  top: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+.rc-brackets i:nth-child(2) {
+  right: 0;
+  top: 0;
+  border-left: 0;
+  border-bottom: 0;
+}
+.rc-brackets i:nth-child(3) {
+  left: 0;
+  bottom: 0;
+  border-right: 0;
+  border-top: 0;
+}
+.rc-brackets i:nth-child(4) {
+  right: 0;
+  bottom: 0;
+  border-left: 0;
+  border-top: 0;
+}
+
+/* Logo */
+.rc-logo__outer {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.rc-logo__core {
+  fill: var(--brass);
+}
+
+/* Item header */
+.rc-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.rc-item__tile {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 58px;
+  height: 58px;
+  border: 2px solid var(--frame);
+}
+.rc-item__tile--logo {
+  background: linear-gradient(160deg, var(--gold-hi), var(--gold-lo));
+}
+.rc-item__tile--logo .rc-logo__outer {
+  stroke: var(--tip-title);
+}
+.rc-item__tile--logo .rc-logo__core {
+  fill: var(--tip-title);
+}
+.rc-item__tile--arena {
+  background: var(--void);
+}
+.rc-item__arena path {
+  fill: none;
+  stroke: var(--brass);
+  stroke-width: 3;
+}
+.rc-item__name {
+  margin: 0;
+  font-size: 30px;
+}
+.rc-item__type {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+.rc-item__flavor {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--tip-text);
+}
+
+/* Stats strip */
+.rc-stats {
+  display: flex;
+  gap: 22px;
+  margin: 0;
+}
+.rc-stats > div {
+  display: flex;
+  flex-direction: column-reverse;
+}
+.rc-stats dd {
+  margin: 0;
+  font-size: 30px;
+}
+.rc-stats dt {
+  color: var(--muted);
+}
+
+/* Phase heading */
+.rc-phase {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--gold-hi);
+}
+.rc-phase i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--gold-hi);
+}
+.rc-phase-heading__title {
+  margin: 4px 0 0;
+  font-size: 24px;
+}
+
+/* Tooltip (Thorn style) */
+.rc-tip {
+  position: absolute;
+  z-index: 10;
+  background: var(--tip-body);
+  border-top: 2px solid var(--tip-edge);
+  box-shadow: var(--tip-shadow);
+  color: var(--ink);
+}
+.rc-tip__title {
+  padding: 9px 12px 8px;
+  background: var(--tip-title);
+  font-size: 15px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.rc-tip__sub {
+  display: block;
+  margin-top: 2px;
+  font-weight: 300;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--tip-text);
+}
+.rc-tip__body {
+  display: grid;
+  gap: 6px;
+  padding: 9px 12px 10px;
+  color: var(--tip-text);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.rc-tip__cost {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 12px 10px;
+  color: var(--live);
+  font-size: 12px;
+}
+.rc-tip__cost b {
+  color: var(--ink);
+  font-weight: 400;
+}
+.rc-cube {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 7px;
+  vertical-align: -1px;
+  background: linear-gradient(135deg, var(--cube-hi), var(--cube-lo));
+}
+
+/* Prompt bar */
+.rc-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 22px;
+  color: var(--prompt-ink);
+  font-size: 13px;
+}
+.rc-prompts--bar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 30;
+  min-height: 38px;
+  padding: 6px 24px;
+  background: var(--prompt);
+}
+.rc-prompts--floating {
+  justify-content: center;
+}
+.rc-prompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.rc-prompts[data-touch="true"] .rc-key {
+  display: none;
+}
+.rc-prompts[data-touch="true"] .rc-prompt {
+  padding: 6px 12px;
+  border: 1.5px solid var(--frame);
+}
