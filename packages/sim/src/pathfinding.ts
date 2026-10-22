@@ -102,7 +102,7 @@ export function findPath(grid: NavGrid, from: Point, to: Point): Point[] {
   const heuristic = (cell: number): number => {
     const dCol = Math.abs((cell % grid.cols) - goalCol);
     const dRow = Math.abs(Math.floor(cell / grid.cols) - goalRow);
-    return Math.max(dCol, dRow) + 0.414 * Math.min(dCol, dRow);
+    return Math.max(dCol, dRow) + (Math.SQRT2 - 1) * Math.min(dCol, dRow);
   };
 
   const open = new MinHeap();
@@ -132,7 +132,7 @@ export function findPath(grid: NavGrid, from: Point, to: Point): Point[] {
           const cornerB = nRow * grid.cols + col;
           if (!grid.cells[cornerA] || !grid.cells[cornerB]) continue;
         }
-        const stepCost = dCol && dRow ? 1.414 : 1;
+        const stepCost = dCol && dRow ? Math.SQRT2 : 1;
         const tentative = gScore[current] + stepCost;
         if (tentative < gScore[neighbor]) {
           gScore[neighbor] = tentative;
