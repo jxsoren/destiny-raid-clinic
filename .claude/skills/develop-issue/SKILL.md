@@ -159,6 +159,26 @@ git -C tmp/worktrees/<branch-slug> rm ISSUE_ANALYSIS.md
 git -C tmp/worktrees/<branch-slug> commit -m "#<number>: Remove issue analysis after implementation"
 ```
 
+## Step 8.5 — UI Fix Preview Comment
+
+Check whether the issue touched UI: any changed file under a frontend path (e.g. components, views, pages, styles) or the `ISSUE_ANALYSIS.md` Affected Areas mentioning UI/frontend. If not a UI fix, skip to Step 9.
+
+If it is a UI fix:
+
+1. Use the `run` skill (or the project's `start-dev` skill) to launch the app in the worktree and navigate to the affected screen(s).
+2. Capture a screenshot of the changed UI showing the fix in effect (use chrome-devtools-mcp `take_screenshot`). Capture a "before" screenshot too if feasible (e.g. via `git stash`/base branch in a scratch checkout) — skip the before-shot if that's impractical, and just post the after-shot with a text description of what changed.
+3. Post a comment on the Draft PR showcasing the change:
+
+```bash
+gh pr comment <branch-name> --body-file <comment-file>
+```
+
+Comment body should include:
+- A short description of what visually changed
+- The screenshot(s), embedded via an uploaded image or a markdown image link (upload via `gh` doesn't support attachments directly — if no image hosting is available, describe the change in words and note screenshots were taken locally)
+
+If the dev server can't be started or the screenshot can't be captured, skip this step and note in the final report that a UI preview comment was not posted.
+
 ## Step 9 — Report
 
 ```bash
