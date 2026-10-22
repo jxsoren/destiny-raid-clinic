@@ -238,11 +238,12 @@ If the dev server can't start or nothing can be captured, skip this step and say
 
 Every PR goes to Josh (`jxsoren`) for approval before it merges. No exceptions, including small fixes and skill or docs changes.
 
-1. **Check the issue link survived.** Step 8.5 and any other body edits must keep the `Closes #<number>` lines at the top:
+1. **Check the issue links are exact.** Step 8.5 and any other body edits must keep the `Closes #<number>` lines at the top, and must not add closing keywords next to other issue numbers (see `/analyze-issue` Step 6 for the keyword list):
    ```bash
-   gh pr view <branch-name> --json closingIssuesReferences --jq '[.closingIssuesReferences[].number]'
+   gh pr view <branch-name> --json closingIssuesReferences --jq '[.closingIssuesReferences[].number] | sort'
+   git log main..<branch-name> --format=%B | grep -iE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]:]+#[0-9]+'
    ```
-   Every issue the branch covers must be listed. If not, restore the lines with `gh pr edit <branch-name> --body-file <file>`.
+   The first must equal the issues the branch covers, no more and no fewer. The second shows the closing keywords in the branch's commit messages, which also close issues once merged into `main`; each one must name an issue the branch covers. Fix the body with `gh pr edit <branch-name> --body-file <file>`; reword a stray commit message before review.
 2. **Mark it ready and request Josh's review:**
    ```bash
    gh pr ready <branch-name>
@@ -289,7 +290,7 @@ gh issue close <number> --comment "Fixed in #<pr-number>."
 
 - **Never proceed with a dirty working tree** (Step 0).
 - **Josh approves every PR before it merges.** Step 8.9 marks the PR ready and requests `jxsoren`'s review. Never merge, enable auto-merge or approve a PR yourself, and never mark one ready before Steps 8.1 to 8.5 are done.
-- **Every PR closes its issues** — `Closes #<number>` stays at the top of the body through every edit, and issues are confirmed closed after the merge.
+- **Every PR closes its issues, and only those** — `Closes #<number>` stays at the top of the body through every edit, no other closing keyword sits next to an issue number in the body or commits, `closingIssuesReferences` matches exactly, and issues are confirmed closed after the merge.
 - **Never skip the confidence gate** — even one unresolved blocking question can derail an entire plan.
 - **Worktree on the existing branch** — do not create a new branch; `/analyze-issue` already created it.
 - **Reuse existing worktrees** — never fail if one exists; resume instead.

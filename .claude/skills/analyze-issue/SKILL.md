@@ -100,6 +100,8 @@ Closes #<other-number>
 
 That links the PR in each issue's Development panel and closes the issue automatically when the PR merges into `main`. Write `Closes` exactly; a bare `#<number>` or "Related to #<number>" links without closing.
 
+Those lines must be the **only** closing keywords anywhere in the body or in commit messages headed for `main`. GitHub treats close, closes, closed, fix, fixes, fixed, resolve, resolves and resolved followed by `#<number>` as a closing link, wherever it appears and in any case. Prose like "the Closes line closed #10" links #10 too. When prose has to mention another issue or PR, keep the verb away from the number ("issue 10 was shut by PR 15", or "see #10").
+
 ```bash
 git push -u origin <branch-name>
 
@@ -109,7 +111,7 @@ gh pr create \
   --draft
 ```
 
-Then confirm GitHub picked up the link: `gh pr view <branch-name> --json closingIssuesReferences --jq '[.closingIssuesReferences[].number]'` must list every issue number. If one is missing, fix the body with `gh pr edit <branch-name> --body-file <file>`.
+Then confirm GitHub linked **exactly** the right issues: `gh pr view <branch-name> --json closingIssuesReferences --jq '[.closingIssuesReferences[].number] | sort'` must equal the sorted list of issues this branch covers, no more and no fewer. If one is missing, restore its `Closes` line; if there is an extra one, reword the prose that caused it. Fix either with `gh pr edit <branch-name> --body-file <file>` and check again. A PR that covers no issue must come back `[]`.
 
 If `gh pr create` fails: report the branch name and instruct the user to open the PR manually. Do not retry silently.
 
@@ -131,5 +133,5 @@ ISSUE_ANALYSIS.md committed. Review the PR when ready, then run /develop-issue t
 - **Never spawn Explore agents** — the user does that themselves.
 - **Thin issue description** → still create branch + PR, but make Open Questions prominent and Confidence Low.
 - **Multiple issues** → one branch, one file, one PR, with a `Closes #<number>` line for each.
-- **Every PR closes its issues** — the body always carries `Closes #<number>`, verified with `closingIssuesReferences`.
+- **Every PR closes its issues, and only those** — the body carries `Closes #<number>` for each, no other closing keyword sits next to an issue number, and `closingIssuesReferences` is checked for an exact match.
 - **`gh` failures** → report clearly, surface manual fallback; never fail silently.
