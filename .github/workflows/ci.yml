@@ -36,4 +36,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec biome ci .
+      - run: node scripts/lint-styles.mjs
+      - run: pnpm run test:scripts
+      - run: pnpm --filter @raid-clinic/ui test
+      - run: pnpm --filter site build
       - run: pnpm run test:prototype

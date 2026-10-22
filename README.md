@@ -1,6 +1,6 @@
 # destiny-raid-clinic
 
-Fan-made, browser-based trainers and guides for Destiny 2 raid encounters. Pick a seat in the fireteam, bots play the other five correctly, and every wipe ends with an explanation of what went wrong. Every raid and encounter follows the same template: a deterministic simulation plus a written guide, generated from the same data.
+Browser-based trainers and guides for Destiny 2 raid encounters. Pick a seat in the fireteam, bots play the other five correctly, and every wipe ends with an explanation of what went wrong. Every raid and encounter follows the same template: a deterministic simulation plus a written guide, generated from the same data.
 
 > Status: **foundation**. The repo layout, tooling, CI and content templates are in place. The Rust simulation engine is next. A single-page Atheon prototype lives in `prototype/` until it's ported.
 
@@ -9,12 +9,13 @@ Fan-made, browser-based trainers and guides for Destiny 2 raid encounters. Pick 
 You need:
 
 - **Rust via [rustup](https://rustup.rs)**. It installs the exact toolchain pinned in `rust-toolchain.toml`, including the WebAssembly target. Homebrew's Rust works for most tasks, but it can't add the WebAssembly target later.
-- **Node 22+** and **pnpm** (`corepack enable`, or see [pnpm.io](https://pnpm.io)). The version is pinned in `package.json`.
+- **Node 22+** and **pnpm**: `npm install -g pnpm@12.10.1` (or `brew install pnpm`), matching `packageManager` in `package.json`. Don't use `corepack enable`. The Corepack bundled with Node 23 can't run pnpm 12 (`Cannot find module …/bin/pnpm.cjs`).
 - **[just](https://just.systems)**, the task runner (`brew install just` or `cargo install just`).
 
 ```sh
 just setup        # install JS tooling
-just check        # everything CI runs: format, lint, tests, content validation
+just dev          # the site at http://localhost:4321 (styleguide at /styleguide)
+just check        # everything CI runs
 just              # list all tasks
 ```
 
@@ -29,6 +30,10 @@ content/
     encounters/<NN>-<encounter>/   encounter.json · guide.mdoc · sources.md · replays/
 templates/      the files every new raid and encounter starts from
 prototype/      the original single-page Atheon trainer (reference until ported)
+apps/site/      the Astro site (pages, layouts)
+packages/ui/    design tokens, type roles and Solid components
+scripts/        repo scripts (style lint)
+STYLEGUIDE.md   how everything looks, reads and behaves (read before any UI work)
 ```
 
 More crates (`primitives`, `encounters`, `content`, `proto`, `sim-wasm`, `server`) and the `apps/site` web client arrive in later build steps.
@@ -38,7 +43,7 @@ More crates (`primitives`, `encounters`, `content`, `proto`, `sim-wasm`, `server
 Never create these files by hand. Scaffold them so every raid and encounter has the same structure:
 
 ```sh
-just new-raid kings-fall "King's Fall"
+just new-raid kings-fall "King's Fall" "Dreadnaught"
 just new-encounter kings-fall 6 oryx "Oryx, the Taken King"
 ```
 
@@ -79,13 +84,10 @@ just prototype    # http://localhost:8080
 
 ## Contributing
 
+- Read STYLEGUIDE.md before touching anything visual.
 - Branch from `main` and open a pull request. CI runs `fmt`, clippy (warnings are errors), tests, Biome and content validation.
 - Run `just check` before pushing.
 - For arena or mechanic changes, cite your reference (guide, map or video timestamp) in the encounter's `sources.md`. Link and credit; don't copy images into the repo.
 - Check visual changes in a real browser on a real GPU. Some rendering bugs only appear on hardware GPUs.
-
-## Credits and disclaimer
-
-This is an unofficial fan project, not affiliated with or endorsed by Bungie. Destiny, Vault of Glass and related names belong to Bungie, Inc. No Bungie art, models, fonts or audio are included. Everything is built in code.
 
 Atheon references: two community Atheon maps, including one by TheRedDelilah. Mechanics are from community guides ([PCGamesN](https://www.pcgamesn.com/destiny-2/vault-of-glass-guide), [Dexerto](https://www.dexerto.com/destiny/ultimate-destiny-2-vault-of-glass-raid-guide-1578682/), [Destinypedia](https://www.destinypedia.com/Atheon,_Time%27s_Conflux), [Game Rant](https://gamerant.com/destiny-2-how-to-beat-atheon-in-the-vault-of-glass/)).

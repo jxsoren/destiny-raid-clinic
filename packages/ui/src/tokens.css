@@ -1,0 +1,55 @@
+/* Raid Clinic design tokens. Every color and font in the UI comes from here.
+   scripts/lint-styles.mjs rejects color literals and font-family values anywhere else. */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --void: #040507;
+  --haze: rgba(70, 74, 80, 0.28);
+  --panel: rgba(10, 12, 14, 0.75);
+
+  /* Brand light */
+  --brass: #c9a36a;
+  --glow: #dff4ef;
+  --gold-hi: #e2c440;
+  --gold-lo: #b59a2a;
+  --gold-edge: rgba(236, 214, 110, 0.95);
+
+  /* Status */
+  --perk-blue: #5a9fd6;
+  --live: #7cc47c;
+  --done: #5ea16a;
+  --danger: #ff6a55;
+  --perk-pale: rgba(255, 255, 255, 0.78);
+  --perk-pale-ink: #6f7d80;
+  --perk-ghost: rgba(255, 255, 255, 0.12);
+  --perk-ghost-edge: rgba(255, 255, 255, 0.2);
+  --perk-ghost-ink: rgba(255, 255, 255, 0.35);
+
+  /* Text */
+  --ink: #ffffff;
+  --ink-dark: #1d2629;
+  --muted: #9aa3ad;
+  --text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+
+  /* Lines and frames */
+  --frame: #ffffff;
+  --divider: rgba(255, 255, 255, 0.55);
+
+  /* Tooltip (Thorn style) */
+  --tip-title: #1c1d1d;
+  --tip-body: rgba(58, 59, 57, 0.92);
+  --tip-text: #d2d4d2;
+  --tip-edge: rgba(214, 216, 212, 0.55);
+  --tip-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+  --cube-hi: #e4f4fb;
+  --cube-lo: #6fb6d8;
+
+  /* Prompts */
+  --prompt: #08090a;
+  --prompt-ink: #e4e4e4;
+  --round-bg: rgba(0, 0, 0, 0.45);
+
+  /* Type */
+  --font-ui: "Roboto", system-ui, sans-serif;
+}

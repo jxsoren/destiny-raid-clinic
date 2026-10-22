@@ -1,0 +1,202 @@
+---
+import {
+  Button,
+  Divider,
+  ItemHeader,
+  KeyGlyph,
+  Logo,
+  PerkNode,
+  PhaseHeading,
+  PromptBar,
+  SelectionBrackets,
+  StatsStrip,
+  StatusIcon,
+  Tooltip,
+} from '@raid-clinic/ui';
+import Base from '../layouts/Base.astro';
+
+const TOKENS = [
+  'void', 'haze', 'panel', 'brass', 'glow', 'gold-hi', 'gold-lo', 'gold-edge', 'perk-blue', 'live', 'done',
+  'danger', 'perk-pale', 'perk-ghost', 'ink', 'ink-dark', 'muted', 'frame', 'divider', 'tip-title',
+  'tip-body', 'tip-text', 'tip-edge', 'cube-hi', 'cube-lo', 'prompt', 'prompt-ink',
+];
+const ROLES = [
+  ['t-name', 'Name', 'Atheon, Time’s Conflux'],
+  ['t-type', 'Type', 'Vault of Glass · Raid encounter'],
+  ['t-flavor', 'Flavor', '“Guardians make their own fate.”'],
+  ['t-head', 'Head', 'Phase 2 · Time gate'],
+  ['t-status', 'Status', '6 seats · 30s'],
+  ['t-big', 'Big', '30s'],
+  ['t-label', 'Label', 'Trainer'],
+  ['t-planet', 'Planet label', 'Vault of Glass'],
+];
+const VOG_ARENA =
+  'M44 8 L56 8 L62 22 L58 34 L72 42 L80 42 L80 70 L66 70 L66 82 L34 82 L34 70 L20 70 L20 50 L34 40 L40 36 L37 22 Z';
+---
+
+<Base title="Styleguide · Raid Clinic" description="Raid Clinic tokens, type roles and components.">
+  <main class="sg">
+    <ItemHeader tile="logo" name="Styleguide" type="Raid Clinic design system" flavor="Read STYLEGUIDE.md for the rules." />
+    <Divider />
+
+    <section>
+      <h2 class="t-head">Color tokens</h2>
+      <ul class="swatches">
+        {TOKENS.map((name) => (
+          <li>
+            <span class="swatch" style={`background: var(--${name})`} />
+            <code>--{name}</code>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="t-head">Type roles</h2>
+      <dl class="roles">
+        {ROLES.map(([cls, role, sample]) => (
+          <div>
+            <dt class="t-status">{role} · .{cls}</dt>
+            <dd class={cls} style={cls === 't-name' ? 'font-size: 32px' : ''}>{sample}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+
+    <section>
+      <h2 class="t-head">Buttons and key glyphs</h2>
+      <div class="row">
+        <Button variant="primary">Take a seat</Button>
+        <Button glyph="F">Play this moment</Button>
+        <Button variant="round" aria-label="Close">×</Button>
+        <Button disabled>Disabled</Button>
+        <KeyGlyph label="E" />
+        <KeyGlyph label="Esc" />
+      </div>
+    </section>
+
+    <section>
+      <h2 class="t-head">Status</h2>
+      <div class="row">
+        <StatusIcon kind="playable" /><StatusIcon kind="guide" /><StatusIcon kind="soon" />
+        <PerkNode state="playable" label="7" title="Atheon" selected />
+        <PerkNode state="guide" label="4" title="Templar" />
+        <PerkNode state="soon" label="5" title="Gorgons" />
+        <PerkNode state="done" label="3" title="Oracles" />
+      </div>
+    </section>
+
+    <section>
+      <h2 class="t-head">Headers</h2>
+      <ItemHeader tile="arena" arenaPath={VOG_ARENA} name="Vault of Glass" type="Venus · Raid" flavor="Guardians make their own fate." />
+      <StatsStrip items={[{ value: '6', label: 'Seats' }, { value: '3', label: 'Oracle sets' }, { value: '30s', label: 'Damage' }]} />
+      <PhaseHeading id="phase-2" kicker="Phase 2 · Time gate" title="Hold the plate" />
+    </section>
+
+    <section>
+      <h2 class="t-head">Tooltip and selection</h2>
+      <div class="stage">
+        <span class="planet" />
+        <span class="bracket-pos"><SelectionBrackets size={110} /></span>
+        <Tooltip
+          target={{ x: 60, y: 45, w: 120, h: 90 }}
+          viewport={{ w: 640, h: 220 }}
+          height={160}
+          title="Vault of Glass"
+          sub="Venus · Raid · 7 encounters"
+          cost={{ label: 'Trainer', value: '1 / 7' }}
+        >
+          <span class="t-flavor">“Guardians make their own fate.”</span>
+          <span>Atheon’s trainer is playable. Guides for every encounter.</span>
+        </Tooltip>
+        <span class="t-planet planet-label">Vault of Glass</span>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="t-head">Prompts</h2>
+      <PromptBar variant="floating" touch={false} prompts={[{ key: 'F', label: 'Select' }, { key: '/', label: 'Search' }]} />
+    </section>
+
+    <Logo size={40} />
+  </main>
+</Base>
+
+<style>
+  .sg {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 16px 80px;
+    display: grid;
+    gap: 36px;
+  }
+  section {
+    display: grid;
+    gap: 14px;
+  }
+  h2 {
+    margin: 0;
+    color: var(--muted);
+  }
+  .swatches {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .swatches li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .swatch {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--divider);
+  }
+  .roles {
+    margin: 0;
+    display: grid;
+    gap: 12px;
+  }
+  .roles dd {
+    margin: 2px 0 0;
+  }
+  .roles dt {
+    color: var(--muted);
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+  }
+  .stage {
+    position: relative;
+    height: 220px;
+    max-width: 640px;
+    background: var(--void);
+    border: 1px solid var(--divider);
+  }
+  .planet {
+    position: absolute;
+    left: 60px;
+    top: 45px;
+    width: 90px;
+    height: 90px;
+    border-radius: 9999px;
+    background: radial-gradient(circle at 35% 30%, var(--gold-hi), var(--gold-lo) 55%, var(--void));
+  }
+  .bracket-pos {
+    position: absolute;
+    left: 50px;
+    top: 35px;
+  }
+  .planet-label {
+    position: absolute;
+    left: 60px;
+    top: 150px;
+  }
+</style>

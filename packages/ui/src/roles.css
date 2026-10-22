@@ -1,0 +1,75 @@
+/* Base page styles and the type roles from STYLEGUIDE.md. Colors and fonts come from tokens.css. */
+html,
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  font-size: 15px;
+  line-height: 1.55;
+}
+:focus-visible {
+  outline: 2px solid var(--frame);
+  outline-offset: 2px;
+}
+::selection {
+  background: var(--gold-hi);
+  color: var(--prompt);
+}
+
+.t-name {
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 0.95;
+  letter-spacing: -0.005em;
+}
+.t-type {
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.t-flavor {
+  font-weight: 300;
+  font-style: italic;
+}
+.t-head {
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.t-status {
+  font-weight: 400;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+.t-big {
+  font-weight: 500;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+.t-label {
+  font-weight: 500;
+}
+.t-planet {
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  text-shadow: var(--text-shadow);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

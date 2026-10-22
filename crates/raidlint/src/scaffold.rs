@@ -6,26 +6,54 @@ use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub fn new_raid(repo: &Path, id: &str, name: &str) -> Result<PathBuf, String> {
+pub fn new_raid(repo: &Path, id: &str, name: &str, location: &str) -> Result<PathBuf, String> {
     if !is_slug(id) {
         return Err(format!(
             "raid id `{id}` must be a lowercase slug, e.g. `vault-of-glass`"
         ));
     }
     require_name(name)?;
+    require_name(location)?;
     let dest = repo.join("content/raids").join(id);
     if dest.exists() {
         return Err(format!("{} already exists", dest.display()));
     }
+    let position = free_position(repo);
     copy_template(
         &repo.join("templates/raid"),
         &dest,
-        &[("{{raid_id}}", id), ("{{raid_name}}", name)],
+        &[
+            ("{{raid_id}}", id),
+            ("{{raid_name}}", name),
+            ("{{raid_location}}", location),
+        ],
     )?;
+    update_json(&dest.join("raid.json"), |obj| {
+        if let Some(Value::Object(planet)) = obj.get_mut("planet") {
+            planet.insert("position".into(), Value::from(vec![position.0, position.1]));
+        }
+    })?;
     let encounters = dest.join("encounters");
     fs::create_dir_all(&encounters).map_err(io)?;
     fs::write(encounters.join(".gitkeep"), "").map_err(io)?;
     Ok(dest)
+}
+
+/// First spot on a coarse grid that keeps MIN_PLANET_DISTANCE from every existing planet.
+fn free_position(repo: &Path) -> (f64, f64) {
+    let taken = crate::check::planet_positions(repo);
+    for row in 0..5 {
+        for col in 0..8 {
+            let p = (0.15 + col as f64 * 0.1, 0.2 + row as f64 * 0.15);
+            let clear = taken
+                .iter()
+                .all(|t| ((t.0 - p.0).powi(2) + (t.1 - p.1).powi(2)).sqrt() >= MIN_PLANET_DISTANCE);
+            if clear {
+                return p;
+            }
+        }
+    }
+    (0.5, 0.5)
 }
 
 pub fn new_encounter(
@@ -47,7 +75,7 @@ pub fn new_encounter(
     let raid_dir = repo.join("content/raids").join(raid);
     if !raid_dir.join("raid.json").exists() {
         return Err(format!(
-            "raid `{raid}` doesn't exist; run `just new-raid {raid} \"<name>\"` first"
+            "raid `{raid}` doesn't exist; run `just new-raid {raid} \"<name>\" \"<location>\"` first"
         ));
     }
     let enc_root = raid_dir.join("encounters");

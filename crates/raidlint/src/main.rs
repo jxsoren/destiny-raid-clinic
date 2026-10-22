@@ -1,7 +1,7 @@
 //! raidlint: keeps every raid and encounter on the same template.
 //!
 //! - `raidlint check`: validate `content/raids/` against the template contract (CI gate)
-//! - `raidlint new-raid <id> --name "<Name>"`: scaffold a raid from `templates/raid`
+//! - `raidlint new-raid <id> --name "<Name>" --location "<Location>"`: scaffold a raid from `templates/raid`
 //! - `raidlint new-encounter <raid> <order> <id> --name "<Name>"`: scaffold an encounter
 
 mod check;
@@ -34,6 +34,9 @@ enum Command {
         /// Display name, e.g. "Vault of Glass".
         #[arg(long)]
         name: String,
+        /// Where the raid takes place, e.g. "Venus". Shown as the type line.
+        #[arg(long)]
+        location: String,
     },
     /// Create an encounter inside an existing raid.
     NewEncounter {
@@ -69,7 +72,9 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         }
-        Command::NewRaid { id, name } => done(scaffold::new_raid(&cli.repo, &id, &name)),
+        Command::NewRaid { id, name, location } => {
+            done(scaffold::new_raid(&cli.repo, &id, &name, &location))
+        }
         Command::NewEncounter {
             raid,
             order,
@@ -139,7 +144,7 @@ mod tests {
 
     fn scaffolded(name: &str) -> TempRepo {
         let repo = TempRepo::new(name);
-        scaffold::new_raid(&repo.0, "vault-of-glass", "Vault of Glass").unwrap();
+        scaffold::new_raid(&repo.0, "vault-of-glass", "Vault of Glass", "Venus").unwrap();
         // Added out of order on purpose: raid.json must still list them by order.
         scaffold::new_encounter(
             &repo.0,
@@ -151,6 +156,76 @@ mod tests {
         .unwrap();
         scaffold::new_encounter(&repo.0, "vault-of-glass", 4, "templar", "The Templar").unwrap();
         repo
+    }
+
+    fn set_planet(repo: &TempRepo, raid: &str, edit: impl FnOnce(&mut serde_json::Value)) {
+        let path = repo.0.join(format!("content/raids/{raid}/raid.json"));
+        let mut value: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        edit(&mut value["planet"]);
+        fs::write(&path, serde_json::to_string_pretty(&value).unwrap()).unwrap();
+    }
+
+    #[test]
+    fn new_raid_fills_location_and_spaces_planets_apart() {
+        let repo = scaffolded("planets");
+        scaffold::new_raid(&repo.0, "kings-fall", "King's Fall", "Dreadnaught").unwrap();
+        let read = |raid: &str| -> serde_json::Value {
+            let path = repo.0.join(format!("content/raids/{raid}/raid.json"));
+            serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap()
+        };
+        let (vog, kf) = (read("vault-of-glass"), read("kings-fall"));
+        assert_eq!(vog["planet"]["location"], "Venus");
+        assert_eq!(kf["planet"]["location"], "Dreadnaught");
+        let pos = |v: &serde_json::Value| {
+            (
+                v["planet"]["position"][0].as_f64().unwrap(),
+                v["planet"]["position"][1].as_f64().unwrap(),
+            )
+        };
+        let ((ax, ay), (bx, by)) = (pos(&vog), pos(&kf));
+        assert!(((ax - bx).powi(2) + (ay - by).powi(2)).sqrt() >= rules::MIN_PLANET_DISTANCE);
+        assert_eq!(repo.problems(), Vec::<String>::new());
+    }
+
+    #[test]
+    fn flags_bad_planets() {
+        let repo = scaffolded("bad-planet");
+        set_planet(&repo, "vault-of-glass", |p| {
+            p["surface"] = "lava".into();
+            p["tint"] = "gold".into();
+            p["size"] = 3.0.into();
+            p["position"] = serde_json::json!([1.4, 0.5]);
+            p["location"] = "".into();
+            p["moons"] = 2.into();
+        });
+        let problems = repo.problems().join("\n");
+        for expected in [
+            "`planet.surface` must be one of",
+            "`planet.tint` must be a #rrggbb color",
+            "`planet.size` must be between 0.5 and 1.6",
+            "`planet.position` must be [x, y] with both between 0 and 1",
+            "`planet.location` must be a non-empty string",
+            "unknown key `planet.moons`",
+        ] {
+            assert!(
+                problems.contains(expected),
+                "missing {expected:?} in:\n{problems}"
+            );
+        }
+    }
+
+    #[test]
+    fn flags_overlapping_planets() {
+        let repo = scaffolded("overlap");
+        scaffold::new_raid(&repo.0, "kings-fall", "King's Fall", "Dreadnaught").unwrap();
+        set_planet(&repo, "vault-of-glass", |p| {
+            p["position"] = serde_json::json!([0.5, 0.5])
+        });
+        set_planet(&repo, "kings-fall", |p| {
+            p["position"] = serde_json::json!([0.52, 0.5])
+        });
+        assert!(repo.problems().iter().any(|p| p.contains("too close to")));
     }
 
     #[test]

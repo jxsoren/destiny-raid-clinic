@@ -13,10 +13,47 @@ pub const RAID_KEYS: &[&str] = &[
     "id",
     "name",
     "released",
+    "planet",
     "encounters",
     "glossary",
     "sources",
 ];
+
+/// Keys of `raid.json`'s `planet` object (how the raid appears on the home Director).
+pub const PLANET_KEYS: &[&str] = &[
+    "surface",
+    "tint",
+    "atmosphere",
+    "ring",
+    "size",
+    "position",
+    "location",
+    "tagline",
+];
+
+/// Planet surface types the space renderer knows how to draw.
+pub const SURFACES: &[&str] = &[
+    "venus",
+    "gas",
+    "ice",
+    "moon",
+    "lush",
+    "lush-dark",
+    "violet",
+    "pale",
+    "desert",
+];
+
+/// Allowed planet size, relative to the base radius.
+pub const PLANET_SIZE: (f64, f64) = (0.5, 1.6);
+
+/// Minimum distance between two planets on the Director (normalized coordinates).
+pub const MIN_PLANET_DISTANCE: f64 = 0.12;
+
+/// `#rrggbb`.
+pub fn is_hex_color(s: &str) -> bool {
+    s.len() == 7 && s.starts_with('#') && s[1..].chars().all(|c| c.is_ascii_hexdigit())
+}
 
 /// Top-level keys of `encounter.json`, in order.
 pub const ENCOUNTER_KEYS: &[&str] = &[
@@ -95,6 +132,14 @@ pub fn encounter_dir_name(order: u8, slug: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hex_colors() {
+        assert!(is_hex_color("#d9b46a"));
+        assert!(!is_hex_color("#d9b46"));
+        assert!(!is_hex_color("d9b46a7"));
+        assert!(!is_hex_color("#zzzzzz"));
+    }
 
     #[test]
     fn slugs() {

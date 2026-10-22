@@ -9,7 +9,8 @@
   },
   "scripts": {
     "prototype": "node prototype/serve.mjs",
-    "test:prototype": "node --test \"prototype/**/*.test.mjs\""
+    "test:prototype": "node --test \"prototype/**/*.test.mjs\"",
+    "test:scripts": "node --test \"scripts/*.test.mjs\""
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15"

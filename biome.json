@@ -6,7 +6,15 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!prototype", "!target", "!templates"]
+    "includes": [
+      "**",
+      "!prototype",
+      "!target",
+      "!templates",
+      "!**/*.astro",
+      "!apps/site/.astro",
+      "!apps/site/dist"
+    ]
   },
   "formatter": {
     "indentStyle": "space",
