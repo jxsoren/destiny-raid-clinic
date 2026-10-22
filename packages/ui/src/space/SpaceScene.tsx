@@ -30,6 +30,8 @@ export interface SpaceSceneProps {
   onLayout?: (screens: PlanetScreen[]) => void;
   /** Accessible name of the scene, e.g. "Raids". */
   label?: string;
+  /** Id of an element describing the selected planet (set as aria-describedby on its button). */
+  describedBy?: string;
   /** Skip 3D and draw the CSS planets (no-3D mode; also used by tests). */
   fallback?: boolean;
   /** Extra overlay content: title block, tooltip, prompts. */
@@ -228,6 +230,7 @@ export function SpaceScene(props: SpaceSceneProps) {
                 class="rc-planet__hit"
                 aria-label={planetLabel(p())}
                 aria-current={selected() ? 'true' : undefined}
+                aria-describedby={selected() ? props.describedBy : undefined}
                 onClick={() => props.onSelect?.(id)}
                 onFocus={() => hover(true)}
                 onBlur={() => hover(false)}

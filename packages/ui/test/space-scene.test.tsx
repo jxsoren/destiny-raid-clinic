@@ -112,6 +112,18 @@ describe('SpaceScene', () => {
     expect(r.setView).toHaveBeenLastCalledWith({ cx: 0.5, cy: 0, zoom: 2 }, 600);
   });
 
+  it('describes only the selected planet button with describedBy', () => {
+    const other: ScenePlanet = { ...VOG, id: 'kf', name: "King's Fall" };
+    render(() => <SpaceScene planets={[VOG, other]} fallback selected="vog" describedBy="tip" />);
+    expect(screen.getByRole('button', { name: /Vault of Glass/ })).toHaveAttribute(
+      'aria-describedby',
+      'tip',
+    );
+    expect(screen.getByRole('button', { name: /King's Fall/ })).not.toHaveAttribute(
+      'aria-describedby',
+    );
+  });
+
   it('reports hover, focus and selection', () => {
     const onSelect = vi.fn();
     const onHover = vi.fn();

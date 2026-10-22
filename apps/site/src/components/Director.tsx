@@ -154,9 +154,19 @@ export function Director(props: {
     setSearching(false);
     setQuery('');
   };
+  let beforeMenu: HTMLElement | null = null;
   const onEscape = () => {
-    if (searching()) closeSearch();
-    else setMenu(!menu());
+    if (searching()) {
+      closeSearch();
+    } else if (menu()) {
+      setMenu(false);
+      beforeMenu?.focus();
+      beforeMenu = null;
+    } else {
+      beforeMenu = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      setMenu(true);
+      queueMicrotask(() => root.querySelector<HTMLElement>('#director-menu a')?.focus());
+    }
   };
 
   const prompts = (): Prompt[] => [
@@ -209,6 +219,7 @@ export function Director(props: {
         seed={11}
         label="Raids"
         selected={selected()}
+        describedBy="director-tip"
         view={view()}
         onLayout={setScreens}
         onHover={setHovered}
@@ -217,6 +228,7 @@ export function Director(props: {
         <Show when={tip()}>
           {(t) => (
             <Tooltip
+              id="director-tip"
               target={t().target}
               avoid={t().avoid}
               viewport={size()}
@@ -245,7 +257,7 @@ export function Director(props: {
                 if (e.key === 'Enter') open(matches()?.[0] ?? null);
               }}
             />
-            <span class="t-status">
+            <span class="t-status" aria-live="polite">
               {matches() === null
                 ? ''
                 : `${matches()?.length ?? 0} match${matches()?.length === 1 ? '' : 'es'}`}
@@ -254,7 +266,7 @@ export function Director(props: {
         </Show>
 
         <Show when={menu()}>
-          <nav class="director__menu" aria-label="Menu">
+          <nav id="director-menu" class="director__menu" aria-label="Menu">
             <a href="/styleguide/">Styleguide</a>
             <a href={props.repoUrl}>Source on GitHub</a>
           </nav>

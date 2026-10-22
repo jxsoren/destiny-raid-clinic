@@ -70,6 +70,25 @@ test('Esc opens the menu', async ({ page }) => {
   ).toBeVisible();
 });
 
+test('the menu takes focus and gives it back on Esc', async ({ page }) => {
+  const kingsFall = page.getByRole('button', { name: /^King's Fall/ });
+  await kingsFall.focus();
+  await page.keyboard.press('Escape');
+  const menu = page.getByRole('navigation', { name: 'Menu' });
+  await expect(menu.getByRole('link', { name: 'Styleguide' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+  await expect(kingsFall).toBeFocused();
+});
+
+test('the selected planet is described by the tooltip', async ({ page }) => {
+  await expect(page.getByRole('button', { name: /^Vault of Glass/ })).toHaveAttribute(
+    'aria-describedby',
+    'director-tip',
+  );
+  await expect(page.getByRole('tooltip')).toHaveAttribute('id', 'director-tip');
+});
+
 test('the Director loads without console errors', async ({ page }) => {
   const errors: string[] = [];
   page.on('console', (m) => {
