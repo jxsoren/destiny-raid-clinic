@@ -16,6 +16,7 @@ pub struct Problem {
 pub struct Report {
     pub raids: usize,
     pub encounters: usize,
+    pub planets: Vec<(PathBuf, f64, f64)>,
     pub problems: Vec<Problem>,
 }
 
@@ -37,7 +38,95 @@ pub fn check(repo: &Path) -> Report {
     for raid_dir in raids {
         check_raid(&raid_dir, &mut report);
     }
+    for i in 0..report.planets.len() {
+        for j in i + 1..report.planets.len() {
+            let (a, b) = (&report.planets[i], &report.planets[j]);
+            let d = ((a.1 - b.1).powi(2) + (a.2 - b.2).powi(2)).sqrt();
+            if d < MIN_PLANET_DISTANCE {
+                let msg = format!(
+                    "planet is too close to {} (distance {d:.3}, minimum {MIN_PLANET_DISTANCE})",
+                    b.0.display()
+                );
+                let path = a.0.clone();
+                report.add(&path, msg);
+            }
+        }
+    }
     report
+}
+
+fn check_planet(value: Option<&Value>, path: &Path, r: &mut Report) -> Option<(f64, f64)> {
+    let Some(Value::Object(p)) = value else {
+        r.add(path, "`planet` must be an object");
+        return None;
+    };
+    for k in PLANET_KEYS.iter().filter(|k| !p.contains_key(**k)) {
+        r.add(path, format!("missing key `planet.{k}`"));
+    }
+    for k in p.keys().filter(|k| !PLANET_KEYS.contains(&k.as_str())) {
+        r.add(path, format!("unknown key `planet.{k}`"));
+    }
+    if !p
+        .get("surface")
+        .and_then(Value::as_str)
+        .is_some_and(|s| SURFACES.contains(&s))
+    {
+        r.add(
+            path,
+            format!("`planet.surface` must be one of {SURFACES:?}"),
+        );
+    }
+    for key in ["tint", "atmosphere"] {
+        if !p.get(key).and_then(Value::as_str).is_some_and(is_hex_color) {
+            r.add(path, format!("`planet.{key}` must be a #rrggbb color"));
+        }
+    }
+    if !p.get("ring").is_some_and(Value::is_boolean) {
+        r.add(path, "`planet.ring` must be true or false");
+    }
+    let (lo, hi) = PLANET_SIZE;
+    if !p
+        .get("size")
+        .and_then(Value::as_f64)
+        .is_some_and(|s| (lo..=hi).contains(&s))
+    {
+        r.add(path, format!("`planet.size` must be between {lo} and {hi}"));
+    }
+    if p.get("location")
+        .and_then(Value::as_str)
+        .is_none_or(|s| s.trim().is_empty())
+    {
+        r.add(path, "`planet.location` must be a non-empty string");
+    }
+    if !p.get("tagline").is_some_and(Value::is_string) {
+        r.add(path, "`planet.tagline` must be a string");
+    }
+    let position = p
+        .get("position")
+        .and_then(Value::as_array)
+        .and_then(|a| match a.as_slice() {
+            [x, y] => Some((x.as_f64()?, y.as_f64()?)),
+            _ => None,
+        });
+    match position {
+        Some((x, y)) if (0.0..=1.0).contains(&x) && (0.0..=1.0).contains(&y) => Some((x, y)),
+        _ => {
+            r.add(
+                path,
+                "`planet.position` must be [x, y] with both between 0 and 1",
+            );
+            None
+        }
+    }
+}
+
+/// Positions of every valid raid planet (used by the scaffolder to pick a free spot).
+pub fn planet_positions(repo: &Path) -> Vec<(f64, f64)> {
+    check(repo)
+        .planets
+        .into_iter()
+        .map(|(_, x, y)| (x, y))
+        .collect()
 }
 
 fn check_raid(dir: &Path, r: &mut Report) {
@@ -102,6 +191,9 @@ fn check_raid(dir: &Path, r: &mut Report) {
                 &path,
                 format!("`encounters` must list the encounter folders in order: {on_disk:?} (found {listed:?})"),
             );
+        }
+        if let Some(pos) = check_planet(obj.get("planet"), &path, r) {
+            r.planets.push((path.clone(), pos.0, pos.1));
         }
     }
 

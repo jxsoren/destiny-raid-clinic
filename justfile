@@ -39,9 +39,9 @@ test:
 content:
     {{raidlint}} check
 
-# Scaffold a raid:      just new-raid vault-of-glass "Vault of Glass"
-new-raid id name:
-    {{raidlint}} new-raid {{id}} --name "{{name}}"
+# Scaffold a raid:      just new-raid vault-of-glass "Vault of Glass" Venus
+new-raid id name location:
+    {{raidlint}} new-raid {{id}} --name "{{name}}" --location "{{location}}"
     pnpm exec biome format --write content/raids/{{id}}
 
 # Scaffold an encounter: just new-encounter vault-of-glass 7 atheon "Atheon, Time's Conflux"

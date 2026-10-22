@@ -2,6 +2,16 @@
   "id": "{{raid_id}}",
   "name": "{{raid_name}}",
   "released": null,
+  "planet": {
+    "surface": "moon",
+    "tint": "#8c8c86",
+    "atmosphere": "#e6e6e0",
+    "ring": false,
+    "size": 1.0,
+    "position": [0.5, 0.5],
+    "location": "{{raid_location}}",
+    "tagline": ""
+  },
   "encounters": [],
   "glossary": [],
   "sources": []
