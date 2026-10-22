@@ -245,6 +245,12 @@
   border-top: 2px solid var(--tip-edge);
   box-shadow: var(--tip-shadow);
   color: var(--ink);
+  animation: rc-tip-in 120ms ease-out;
+}
+@keyframes rc-tip-in {
+  from {
+    opacity: 0;
+  }
 }
 .rc-tip__title {
   padding: 9px 12px 8px;

@@ -6,7 +6,7 @@ This is the source of truth for how Raid Clinic looks, reads and behaves. It is 
 
 1. **Never hard-code a color or font.** Use a token from `packages/ui/src/tokens.css` (`var(--brass)`, `var(--font-ui)`). `just lint` fails otherwise. The only exceptions are planet colors in `raid.json` and shader files under a `shaders/` folder.
 2. **Use the components in `@raid-clinic/ui`.** Don't restyle them locally and don't copy their CSS. If one is missing something, change the component and its test.
-3. **Never write "fan-made"** anywhere in the UI. The legal line "Not affiliated with Bungie" lives on the About page only.
+3. **Never call the site a fan project** anywhere in the UI (`just lint` rejects that wording). The legal line "Not affiliated with Bungie" belongs on the About page only, once it exists.
 4. **Add raids and encounters with `just new-raid` and `just new-encounter`.** Never by hand.
 5. **Run `just check`** before every commit.
 
