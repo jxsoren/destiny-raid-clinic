@@ -17,15 +17,19 @@ In the Atheon arena trainer, the camera is locked to a single fixed angle; the p
 
 ## Proposed Changes
 
-1. `prototype/vault-of-glass/atheon/atheon.js` — Introduce a user-controlled yaw (and optionally pitch) offset applied when computing `camera.position` each frame: rotate the `base0` offset around `look0` by the current yaw angle instead of using `base0` directly, so the existing shake/sway math layers on top of the new orbit.
-2. `prototype/vault-of-glass/atheon/atheon.js` — Add a drag gesture (pointerdown + pointermove + pointerup/cancel) on `canvas` that updates the yaw angle, with a movement-distance threshold so short taps still register as move/shoot actions (don't regress existing `tap`/`shootOracle` behavior).
-3. `prototype/vault-of-glass/atheon/atheon.js` — Ensure the rotation state persists and keeps working across all encounter phases/phases transitions (`S.phase`), since acceptance criteria require rotation to work "at any point during the encounter."
+1. `prototype/vault-of-glass/atheon/atheon.js` — Add a `yaw` state variable (radians, clamped to roughly ±45–60°) and rotate the `base0` offset around `look0` by `yaw` each frame instead of using `base0` directly, so the existing shake/sway math layers on top of the new orbit.
+2. `prototype/vault-of-glass/atheon/atheon.js` — Add a drag gesture (pointerdown + pointermove + pointerup/cancel) on `canvas` that updates `yaw` from horizontal drag delta, clamped to the arc; use a movement-distance threshold so short taps still register as move/shoot actions (don't regress existing `tap`/`shootOracle` behavior).
+3. `prototype/vault-of-glass/atheon/atheon.js` — Add two on-screen buttons (rotate-left / rotate-right) that nudge `yaw` by a fixed step, clamped to the same arc, for accessibility alongside the drag gesture.
+4. `prototype/vault-of-glass/atheon/atheon.js` — Ensure `yaw` is read every frame regardless of `S.phase`, so rotation keeps working through all encounter phases/transitions (acceptance criteria: works "at any point during the encounter").
+5. `prototype/vault-of-glass/atheon/atheon.js` — Reset `yaw` to `0` whenever the encounter restarts/respawns (wherever that reset path lives, e.g. alongside `window.__resetScene`).
 
 ## Open Questions
 
-- Should rotation be constrained (e.g. a limited arc to preserve the isometric framing and avoid clipping into the stone meshes) or fully free 360°? The issue says "full isometric-style view," suggesting the intent is a wider range of fixed-elevation angles rather than true free-fly, but no exact bounds are specified.
-- Should there be an explicit UI affordance (drag-to-rotate only, or also buttons/keys) given this is a touch + mouse + keyboard trainer (existing keyboard movement via `keydown`/`keyup` at line 547)?
-- Should rotation reset on respawn/encounter restart, or persist across restarts within a session?
+None — resolved via clarification:
+
+- **Input method:** Drag-to-rotate on the canvas (short taps still move/shoot as today) **plus** explicit on-screen rotate-left/rotate-right buttons for accessibility.
+- **Rotation range:** Constrained arc, roughly ±45–60° yaw from the default facing — not a full 360° orbit — to keep the isometric framing readable and avoid clipping into geometry behind the arena.
+- **Persistence:** Rotation resets to the default angle on encounter restart/respawn; it does not persist across attempts.
 
 ## Next Steps
 
@@ -35,4 +39,4 @@ In the Atheon arena trainer, the camera is locked to a single fixed angle; the p
 
 ## Confidence
 
-**Medium** — The affected file and exact camera update code are clearly identified with no ambiguity, but the UX shape of "rotate" (drag vs. buttons, bounded vs. free, persistence) is not specified in the issue and needs a product decision before implementation.
+**High** — The affected file and exact camera update code are clearly identified, and the UX shape of "rotate" (drag + buttons, constrained arc, reset on restart) has been resolved via clarification.
