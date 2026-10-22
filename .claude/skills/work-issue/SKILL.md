@@ -64,3 +64,4 @@ Pass through `/develop-issue`'s final report as-is. No extra summary needed.
 - **This skill adds no steps of its own** — it is a sequence, not a replacement for either skill's guardrails.
 - **Never auto-answer a confidence clarification or Review checkpoint** — those pauses are for the user, even inside this combined flow.
 - **A failure in `/analyze-issue` halts the whole pipeline** — never fall through to `/develop-issue` on a partial/failed analysis.
+- **The pipeline ends at Josh's review, never at a merge.** `/develop-issue` marks the PR ready and requests `jxsoren`'s review, and the PR body closes its issue(s). Nothing in this flow merges.

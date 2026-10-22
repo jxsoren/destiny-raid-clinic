@@ -18,7 +18,7 @@ not_for:
   - "issues without an ISSUE_ANALYSIS.md"
   - "quick one-liner fixes (just do them)"
 
-outputs: "worktree with implemented code, plan file marked complete, Draft PR updated"
+outputs: "worktree with implemented code, plan file marked complete, PR marked ready with jxsoren's review requested and Closes #<number> linking the issue"
 
 see_also:
   - name: /analyze-issue
@@ -234,6 +234,23 @@ If no signed-in browser tool is available, stop here: send the user the two file
 
 If the dev server can't start or nothing can be captured, skip this step and say in the final report that no UI preview was posted.
 
+## Step 8.9 — Submit for Josh's Review
+
+Every PR goes to Josh (`jxsoren`) for approval before it merges. No exceptions, including small fixes and skill or docs changes.
+
+1. **Check the issue link survived.** Step 8.5 and any other body edits must keep the `Closes #<number>` lines at the top:
+   ```bash
+   gh pr view <branch-name> --json closingIssuesReferences --jq '[.closingIssuesReferences[].number]'
+   ```
+   Every issue the branch covers must be listed. If not, restore the lines with `gh pr edit <branch-name> --body-file <file>`.
+2. **Mark it ready and request Josh's review:**
+   ```bash
+   gh pr ready <branch-name>
+   gh pr edit <branch-name> --add-reviewer jxsoren
+   ```
+   Then confirm with `gh pr view <branch-name> --json isDraft,reviewRequests`: `isDraft` false and `jxsoren` in the reviewers. Review requests on a draft don't notify anyone, so `gh pr ready` has to come first.
+3. **Stop there.** Don't merge, don't enable auto-merge and don't approve. Merging is Josh's call once he approves.
+
 ## Step 9 — Report
 
 ```bash
@@ -241,16 +258,29 @@ gh pr view <branch-name> --json url,title
 ```
 
 ```
-Issue #<number> development complete (Draft PR remains open for your review).
+Issue #<number> development complete. PR is ready and waiting on Josh's review.
 
 Branch:    <branch-name>
 Worktree:  tmp/worktrees/<branch-slug>
            (remove with `git worktree remove tmp/worktrees/<branch-slug>`)
 Plan:      .claude/docs/plans/active/<feature-slug>/<plan-file>
 Review:    .claude/docs/plans/active/<feature-slug>/<feature-slug>-review.md (or inline summary)
-Draft PR:  <url>
+PR:        <url> (closes #<number>, review requested from jxsoren)
+```
 
-All tasks complete. Review the Draft PR when ready — mark ready for review manually.
+## After the PR Merges
+
+When the user says the PR merged (or a later run finds it merged), confirm each linked issue actually closed:
+
+```bash
+gh issue view <number> --json state,closedByPullRequestsReferences \
+  --jq '"\(.state) by \([.closedByPullRequestsReferences[].number])"'
+```
+
+`CLOSED by [<pr>]` means it worked. If an issue is still open (the PR merged into a branch other than `main`, or the keyword got lost), close it and link the PR by hand:
+
+```bash
+gh issue close <number> --comment "Fixed in #<pr-number>."
 ```
 
 ---
@@ -258,7 +288,8 @@ All tasks complete. Review the Draft PR when ready — mark ready for review man
 ## Guardrails
 
 - **Never proceed with a dirty working tree** (Step 0).
-- **Never mark the Draft PR ready for review** — leave that for the user.
+- **Josh approves every PR before it merges.** Step 8.9 marks the PR ready and requests `jxsoren`'s review. Never merge, enable auto-merge or approve a PR yourself, and never mark one ready before Steps 8.1 to 8.5 are done.
+- **Every PR closes its issues** — `Closes #<number>` stays at the top of the body through every edit, and issues are confirmed closed after the merge.
 - **Never skip the confidence gate** — even one unresolved blocking question can derail an entire plan.
 - **Worktree on the existing branch** — do not create a new branch; `/analyze-issue` already created it.
 - **Reuse existing worktrees** — never fail if one exists; resume instead.
