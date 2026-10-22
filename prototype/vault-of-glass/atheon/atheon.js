@@ -394,6 +394,9 @@ function phaseLogic(dt){
 // HUD + overlay (DOM)
 // =====================================================================
 const $ = id => document.getElementById(id);
+const YAW_LIMIT = Math.PI / 3.5; // ~51° either side of the default facing — keeps the isometric framing readable
+const ROTATE_STEP = Math.PI / 18; // 10° per button press
+let camYaw = 0;
 const overlay = $('overlay');
 const ICONS = {
   void:'<path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><path d="M4 20L20 4"/>',
@@ -1187,6 +1190,8 @@ async function initEngine(){
     camera.updateProjectionMatrix(); pMat.uniforms.uScale.value = H2*pr*.5;
   }
   const base0 = new THREE.Vector3(), look0 = new THREE.Vector3();
+  const camOffset = new THREE.Vector3();
+  const UP_AXIS = new THREE.Vector3(0,1,0);
   function applyTier(name){
     tierName = name; const t = TIERS[name], sh = t.shadow > 0;
     if (renderer.shadowMap.enabled !== sh){ renderer.shadowMap.enabled = sh; scene.traverse(o => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; ms.forEach(m => m.needsUpdate = true); }); }
@@ -1252,9 +1257,12 @@ async function initEngine(){
     flash.intensity *= Math.exp(-dt*9);
     stepParticles(dt);
 
-    // camera with shake
+    // camera with shake, orbited around look0 by the player-controlled yaw
     shake *= Math.exp(-dt*4);
-    camera.position.copy(base0); camera.position.x += Math.sin(T*.13)*.8; camera.position.y += Math.sin(T*.11)*.5;
+    camOffset.copy(base0).sub(look0);
+    camOffset.applyAxisAngle(UP_AXIS, camYaw);
+    camera.position.copy(look0).add(camOffset);
+    camera.position.x += Math.sin(T*.13)*.8; camera.position.y += Math.sin(T*.11)*.5;
     if (shake > .01){ camera.position.x += (Math.random()-.5)*shake; camera.position.y += (Math.random()-.5)*shake; }
     camera.lookAt(look0);
 
