@@ -91,6 +91,15 @@ For multiple issues: one `## Issue #<number>` section per issue, each with its o
 
 ## Step 6 — Push and Create Draft PR
 
+The PR body's first line(s) must be a closing keyword for every issue the branch covers, one per line:
+
+```markdown
+Closes #<number>
+Closes #<other-number>
+```
+
+That links the PR in each issue's Development panel and closes the issue automatically when the PR merges into `main`. Write `Closes` exactly; a bare `#<number>` or "Related to #<number>" links without closing.
+
 ```bash
 git push -u origin <branch-name>
 
@@ -99,6 +108,8 @@ gh pr create \
   --body "$(cat /tmp/pr_body.md)" \
   --draft
 ```
+
+Then confirm GitHub picked up the link: `gh pr view <branch-name> --json closingIssuesReferences --jq '[.closingIssuesReferences[].number]'` must list every issue number. If one is missing, fix the body with `gh pr edit <branch-name> --body-file <file>`.
 
 If `gh pr create` fails: report the branch name and instruct the user to open the PR manually. Do not retry silently.
 
@@ -119,5 +130,6 @@ ISSUE_ANALYSIS.md committed. Review the PR when ready, then run /develop-issue t
 - **Always create a Draft PR** — never ready-to-merge/ready-for-review.
 - **Never spawn Explore agents** — the user does that themselves.
 - **Thin issue description** → still create branch + PR, but make Open Questions prominent and Confidence Low.
-- **Multiple issues** → one branch, one file, one PR.
+- **Multiple issues** → one branch, one file, one PR, with a `Closes #<number>` line for each.
+- **Every PR closes its issues** — the body always carries `Closes #<number>`, verified with `closingIssuesReferences`.
 - **`gh` failures** → report clearly, surface manual fallback; never fail silently.
