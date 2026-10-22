@@ -16,7 +16,8 @@ pub struct Problem {
 pub struct Report {
     pub raids: usize,
     pub encounters: usize,
-    pub planets: Vec<(PathBuf, f64, f64)>,
+    /// (raid.json path, x, y, size)
+    pub planets: Vec<(PathBuf, f64, f64, f64)>,
     pub problems: Vec<Problem>,
 }
 
@@ -42,9 +43,10 @@ pub fn check(repo: &Path) -> Report {
         for j in i + 1..report.planets.len() {
             let (a, b) = (&report.planets[i], &report.planets[j]);
             let d = ((a.1 - b.1).powi(2) + (a.2 - b.2).powi(2)).sqrt();
-            if d < MIN_PLANET_DISTANCE {
+            let min = min_planet_distance(a.3, b.3);
+            if d < min {
                 let msg = format!(
-                    "planet is too close to {} (distance {d:.3}, minimum {MIN_PLANET_DISTANCE})",
+                    "planet is too close to {} (distance {d:.3}, minimum {min:.3})",
                     b.0.display()
                 );
                 let path = a.0.clone();
@@ -55,7 +57,8 @@ pub fn check(repo: &Path) -> Report {
     report
 }
 
-fn check_planet(value: Option<&Value>, path: &Path, r: &mut Report) -> Option<(f64, f64)> {
+/// Returns `(x, y, size)` when the position is valid (size falls back to the default if invalid).
+fn check_planet(value: Option<&Value>, path: &Path, r: &mut Report) -> Option<(f64, f64, f64)> {
     let Some(Value::Object(p)) = value else {
         r.add(path, "`planet` must be an object");
         return None;
@@ -85,13 +88,14 @@ fn check_planet(value: Option<&Value>, path: &Path, r: &mut Report) -> Option<(f
         r.add(path, "`planet.ring` must be true or false");
     }
     let (lo, hi) = PLANET_SIZE;
-    if !p
+    let size = p
         .get("size")
         .and_then(Value::as_f64)
-        .is_some_and(|s| (lo..=hi).contains(&s))
-    {
+        .filter(|s| (lo..=hi).contains(s));
+    if size.is_none() {
         r.add(path, format!("`planet.size` must be between {lo} and {hi}"));
     }
+    let size = size.unwrap_or(DEFAULT_PLANET_SIZE);
     if p.get("location")
         .and_then(Value::as_str)
         .is_none_or(|s| s.trim().is_empty())
@@ -109,7 +113,7 @@ fn check_planet(value: Option<&Value>, path: &Path, r: &mut Report) -> Option<(f
             _ => None,
         });
     match position {
-        Some((x, y)) if (0.0..=1.0).contains(&x) && (0.0..=1.0).contains(&y) => Some((x, y)),
+        Some((x, y)) if (0.0..=1.0).contains(&x) && (0.0..=1.0).contains(&y) => Some((x, y, size)),
         _ => {
             r.add(
                 path,
@@ -120,12 +124,12 @@ fn check_planet(value: Option<&Value>, path: &Path, r: &mut Report) -> Option<(f
     }
 }
 
-/// Positions of every valid raid planet (used by the scaffolder to pick a free spot).
-pub fn planet_positions(repo: &Path) -> Vec<(f64, f64)> {
+/// `(x, y, size)` of every valid raid planet (used by the scaffolder to pick a free spot).
+pub fn planet_bodies(repo: &Path) -> Vec<(f64, f64, f64)> {
     check(repo)
         .planets
         .into_iter()
-        .map(|(_, x, y)| (x, y))
+        .map(|(_, x, y, size)| (x, y, size))
         .collect()
 }
 
@@ -192,8 +196,11 @@ fn check_raid(dir: &Path, r: &mut Report) {
                 format!("`encounters` must list the encounter folders in order: {on_disk:?} (found {listed:?})"),
             );
         }
-        if let Some(pos) = check_planet(obj.get("planet"), &path, r) {
-            r.planets.push((path.clone(), pos.0, pos.1));
+        // A missing `planet` is already reported by `read_json_object`.
+        if obj.contains_key("planet")
+            && let Some((x, y, size)) = check_planet(obj.get("planet"), &path, r)
+        {
+            r.planets.push((path.clone(), x, y, size));
         }
     }
 

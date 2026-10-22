@@ -47,8 +47,17 @@ pub const SURFACES: &[&str] = &[
 /// Allowed planet size, relative to the base radius.
 pub const PLANET_SIZE: (f64, f64) = (0.5, 1.6);
 
-/// Minimum distance between two planets on the Director (normalized coordinates).
-pub const MIN_PLANET_DISTANCE: f64 = 0.12;
+/// Size assumed for planets that don't have a valid one yet (the template default).
+pub const DEFAULT_PLANET_SIZE: f64 = 1.0;
+
+/// Spacing factor: two planets need `PLANET_DISTANCE_K * (size_a + size_b)` between centers
+/// (normalized coordinates). 0.06 keeps the old 0.12 minimum for two size-1.0 planets.
+pub const PLANET_DISTANCE_K: f64 = 0.06;
+
+/// Minimum center distance between two planets of the given sizes.
+pub fn min_planet_distance(size_a: f64, size_b: f64) -> f64 {
+    PLANET_DISTANCE_K * (size_a + size_b)
+}
 
 /// `#rrggbb`.
 pub fn is_hex_color(s: &str) -> bool {

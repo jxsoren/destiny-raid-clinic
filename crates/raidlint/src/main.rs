@@ -184,8 +184,94 @@ mod tests {
             )
         };
         let ((ax, ay), (bx, by)) = (pos(&vog), pos(&kf));
-        assert!(((ax - bx).powi(2) + (ay - by).powi(2)).sqrt() >= rules::MIN_PLANET_DISTANCE);
+        assert!(
+            ((ax - bx).powi(2) + (ay - by).powi(2)).sqrt()
+                >= rules::min_planet_distance(
+                    rules::DEFAULT_PLANET_SIZE,
+                    rules::DEFAULT_PLANET_SIZE
+                )
+        );
         assert_eq!(repo.problems(), Vec::<String>::new());
+    }
+
+    fn read_raid(repo: &TempRepo, raid: &str) -> serde_json::Value {
+        let path = repo.0.join(format!("content/raids/{raid}/raid.json"));
+        serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn overlap_scales_with_planet_size() {
+        let repo = scaffolded("overlap-size");
+        scaffold::new_raid(&repo.0, "kings-fall", "King's Fall", "Dreadnaught").unwrap();
+        // 0.12 apart is fine for two size-1.0 planets...
+        set_planet(&repo, "vault-of-glass", |p| {
+            p["size"] = 1.0.into();
+            p["position"] = serde_json::json!([0.5, 0.5])
+        });
+        set_planet(&repo, "kings-fall", |p| {
+            p["size"] = 1.0.into();
+            p["position"] = serde_json::json!([0.62, 0.5])
+        });
+        assert!(!repo.problems().iter().any(|p| p.contains("too close to")));
+        // ...but not for two size-1.6 planets.
+        for raid in ["vault-of-glass", "kings-fall"] {
+            set_planet(&repo, raid, |p| p["size"] = 1.6.into());
+        }
+        assert!(repo.problems().iter().any(|p| p.contains("too close to")));
+    }
+
+    #[test]
+    fn scaffolded_positions_have_no_float_noise() {
+        let repo = scaffolded("rounding");
+        for id in ["a-raid", "b-raid", "c-raid", "d-raid", "e-raid"] {
+            scaffold::new_raid(&repo.0, id, "X", "Y").unwrap();
+        }
+        for id in [
+            "vault-of-glass",
+            "a-raid",
+            "b-raid",
+            "c-raid",
+            "d-raid",
+            "e-raid",
+        ] {
+            let raid = read_raid(&repo, id);
+            for axis in 0..2 {
+                let v = raid["planet"]["position"][axis].as_f64().unwrap();
+                assert_eq!(v, (v * 100.0).round() / 100.0, "{id}: {v}");
+            }
+        }
+    }
+
+    #[test]
+    fn full_grid_is_an_error() {
+        let repo = TempRepo::new("full-grid");
+        let mut failure = None;
+        for i in 0..45 {
+            match scaffold::new_raid(&repo.0, &format!("raid-{i}"), "X", "Y") {
+                Ok(_) => {}
+                Err(e) => {
+                    failure = Some((i, e));
+                    break;
+                }
+            }
+        }
+        let (i, err) = failure.expect("grid should fill up");
+        assert!(i > 0);
+        assert!(err.contains("no free Director position"), "{err}");
+        assert!(!repo.0.join(format!("content/raids/raid-{i}")).exists());
+        assert!(!repo.problems().iter().any(|p| p.contains("too close to")));
+    }
+
+    #[test]
+    fn missing_planet_reports_one_error() {
+        let repo = scaffolded("no-planet");
+        let path = repo.0.join("content/raids/vault-of-glass/raid.json");
+        let mut value: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        value.as_object_mut().unwrap().remove("planet");
+        fs::write(&path, serde_json::to_string_pretty(&value).unwrap()).unwrap();
+        let problems = repo.problems();
+        assert_eq!(problems, vec!["missing key `planet`".to_string()]);
     }
 
     #[test]

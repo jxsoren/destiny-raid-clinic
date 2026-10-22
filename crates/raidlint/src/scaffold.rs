@@ -18,7 +18,7 @@ pub fn new_raid(repo: &Path, id: &str, name: &str, location: &str) -> Result<Pat
     if dest.exists() {
         return Err(format!("{} already exists", dest.display()));
     }
-    let position = free_position(repo);
+    let position = free_position(repo)?;
     copy_template(
         &repo.join("templates/raid"),
         &dest,
@@ -39,21 +39,27 @@ pub fn new_raid(repo: &Path, id: &str, name: &str, location: &str) -> Result<Pat
     Ok(dest)
 }
 
-/// First spot on a coarse grid that keeps MIN_PLANET_DISTANCE from every existing planet.
-fn free_position(repo: &Path) -> (f64, f64) {
-    let taken = crate::check::planet_positions(repo);
+/// First spot on a coarse grid where a default-size planet keeps its minimum distance from
+/// every existing planet. Coordinates are rounded to 2 decimals.
+fn free_position(repo: &Path) -> Result<(f64, f64), String> {
+    let taken = crate::check::planet_bodies(repo);
+    let round = |v: f64| (v * 100.0).round() / 100.0;
     for row in 0..5 {
         for col in 0..8 {
-            let p = (0.15 + col as f64 * 0.1, 0.2 + row as f64 * 0.15);
-            let clear = taken
-                .iter()
-                .all(|t| ((t.0 - p.0).powi(2) + (t.1 - p.1).powi(2)).sqrt() >= MIN_PLANET_DISTANCE);
+            let p = (
+                round(0.15 + col as f64 * 0.1),
+                round(0.2 + row as f64 * 0.15),
+            );
+            let clear = taken.iter().all(|t| {
+                ((t.0 - p.0).powi(2) + (t.1 - p.1).powi(2)).sqrt()
+                    >= min_planet_distance(t.2, DEFAULT_PLANET_SIZE)
+            });
             if clear {
-                return p;
+                return Ok(p);
             }
         }
     }
-    (0.5, 0.5)
+    Err("no free Director position; set planet.position by hand".into())
 }
 
 pub fn new_encounter(
