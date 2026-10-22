@@ -14,7 +14,8 @@ You need:
 
 ```sh
 just setup        # install JS tooling
-just check        # everything CI runs: format, lint, tests, content validation
+just dev          # the site at http://localhost:4321 (styleguide at /styleguide)
+just check        # everything CI runs
 just              # list all tasks
 ```
 
@@ -29,6 +30,10 @@ content/
     encounters/<NN>-<encounter>/   encounter.json · guide.mdoc · sources.md · replays/
 templates/      the files every new raid and encounter starts from
 prototype/      the original single-page Atheon trainer (reference until ported)
+apps/site/      the Astro site (pages, layouts)
+packages/ui/    design tokens, type roles and Solid components
+scripts/        repo scripts (style lint)
+STYLEGUIDE.md   how everything looks, reads and behaves (read before any UI work)
 ```
 
 More crates (`primitives`, `encounters`, `content`, `proto`, `sim-wasm`, `server`) and the `apps/site` web client arrive in later build steps.
@@ -38,7 +43,7 @@ More crates (`primitives`, `encounters`, `content`, `proto`, `sim-wasm`, `server
 Never create these files by hand. Scaffold them so every raid and encounter has the same structure:
 
 ```sh
-just new-raid kings-fall "King's Fall"
+just new-raid kings-fall "King's Fall" "Dreadnaught"
 just new-encounter kings-fall 6 oryx "Oryx, the Taken King"
 ```
 
@@ -79,6 +84,7 @@ just prototype    # http://localhost:8080
 
 ## Contributing
 
+- Read STYLEGUIDE.md before touching anything visual.
 - Branch from `main` and open a pull request. CI runs `fmt`, clippy (warnings are errors), tests, Biome and content validation.
 - Run `just check` before pushing.
 - For arena or mechanic changes, cite your reference (guide, map or video timestamp) in the encounter's `sources.md`. Link and credit; don't copy images into the repo.

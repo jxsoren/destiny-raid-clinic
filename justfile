@@ -13,7 +13,7 @@ setup:
     pnpm install
 
 # Everything CI runs: format check, lint, tests, content
-check: fmt-check lint test content
+check: fmt-check lint test content build
 
 # Format Rust and JS/JSON
 fmt:
@@ -25,21 +25,35 @@ fmt-check:
     cargo fmt --all --check
     pnpm exec biome format .
 
-# Lint Rust (clippy, warnings are errors) and JS/JSON (Biome)
-lint:
+# Lint Rust (clippy, warnings are errors), JS/JSON (Biome) and styles (tokens only, no "fan-made")
+lint: lint-styles
     cargo clippy --workspace --all-targets -- -D warnings
     pnpm exec biome lint .
 
 # Run all tests
 test:
     cargo test --workspace
+    pnpm --filter @raid-clinic/ui test
+    pnpm run test:scripts
     pnpm run test:prototype
 
 # Validate every raid and encounter against the templates
 content:
     {{raidlint}} check
 
-# Scaffold a raid:      just new-raid vault-of-glass "Vault of Glass" Venus
+# Colors and fonts only from packages/ui/src/tokens.css; no "fan-made" in the UI
+lint-styles:
+    node scripts/lint-styles.mjs
+
+# Run the site at http://localhost:4321 (styleguide at /styleguide)
+dev:
+    pnpm --filter site dev
+
+# Build the site into apps/site/dist
+build:
+    pnpm --filter site build
+
+# Scaffold a raid:      just new-raid kings-fall "King's Fall" "Dreadnaught"
 new-raid id name location:
     {{raidlint}} new-raid {{id}} --name "{{name}}" --location "{{location}}"
     pnpm exec biome format --write content/raids/{{id}}
