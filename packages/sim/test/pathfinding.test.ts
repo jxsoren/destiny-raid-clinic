@@ -31,7 +31,12 @@ describe('findPath', () => {
   it('routes around a wall splitting the room, instead of cutting through it', () => {
     const arena: ArenaDef = {
       ...openRoom,
-      walls: [[{ x: 50, y: 0 }, { x: 50, y: 80 }]],
+      walls: [
+        [
+          { x: 50, y: 0 },
+          { x: 50, y: 80 },
+        ],
+      ],
     };
     const grid = buildNavGrid(arena, 5);
     const path = findPath(grid, { x: 10, y: 10 }, { x: 90, y: 10 });
@@ -75,7 +80,12 @@ describe('findPath', () => {
   it('does not draw a line-of-sight shortcut through a thin wall when cellSize is small', () => {
     const arena: ArenaDef = {
       ...openRoom,
-      walls: [[{ x: 10, y: 0 }, { x: 10, y: 15 }]],
+      walls: [
+        [
+          { x: 10, y: 0 },
+          { x: 10, y: 15 },
+        ],
+      ],
     };
     const grid = buildNavGrid(arena, 1);
     const path = findPath(grid, { x: 5, y: 10 }, { x: 15, y: 10 });

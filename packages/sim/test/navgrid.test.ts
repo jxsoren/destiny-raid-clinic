@@ -48,7 +48,12 @@ describe('buildNavGrid', () => {
   it('blocks a clearance radius around walls', () => {
     const arena: ArenaDef = {
       ...openRoom,
-      walls: [[{ x: 10, y: 0 }, { x: 10, y: 20 }]],
+      walls: [
+        [
+          { x: 10, y: 0 },
+          { x: 10, y: 20 },
+        ],
+      ],
     };
     const grid = buildNavGrid(arena, 1);
     expect(isWalkableAt(grid, 10, 10)).toBe(false);
