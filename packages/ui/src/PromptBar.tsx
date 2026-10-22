@@ -46,7 +46,9 @@ export function PromptBar(props: {
     }
   };
   onMount(() => window.addEventListener('keydown', onKey));
-  onCleanup(() => window.removeEventListener('keydown', onKey));
+  onCleanup(() => {
+    if (typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
+  });
 
   return (
     <nav
