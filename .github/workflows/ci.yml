@@ -27,6 +27,7 @@ jobs:
   web:
     name: JS/JSON (Biome, prototype tests)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -41,9 +42,32 @@ jobs:
       - run: pnpm --filter @raid-clinic/ui exec tsc -p . --noEmit
       - run: pnpm --filter site check
       - run: pnpm --filter @raid-clinic/ui test
+      - run: pnpm --filter site test
       - run: pnpm --filter site build
-      - run: pnpm --filter site exec playwright install --with-deps chromium
-      - run: pnpm --filter site exec playwright test
+      # Browsers come from Playwright's CDN and system libraries from apt; either can stall, so
+      # cache the browser, time-box each attempt and retry instead of hanging the job.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install Playwright Chromium
+        timeout-minutes: 8
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            cmd="install-deps chromium"
+          else
+            cmd="install --with-deps chromium"
+          fi
+          for attempt in 1 2 3; do
+            timeout 150 pnpm --filter site exec playwright $cmd && exit 0
+            echo "playwright $cmd attempt $attempt failed or stalled; retrying"
+          done
+          exit 1
+      - name: Browser tests
+        timeout-minutes: 15
+        run: pnpm --filter site exec playwright test
       - name: Upload Playwright traces
         if: failure()
         uses: actions/upload-artifact@v4

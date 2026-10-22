@@ -1,0 +1,18 @@
+{
+  "id": "vow-of-the-disciple",
+  "name": "Vow of the Disciple",
+  "released": "2022-03-05",
+  "planet": {
+    "surface": "lush",
+    "tint": "#8a9a5a",
+    "atmosphere": "#c9e08a",
+    "ring": false,
+    "size": 0.9,
+    "position": [0.83, 0.82],
+    "location": "Savathûn's Throne World",
+    "tagline": ""
+  },
+  "encounters": [],
+  "glossary": [],
+  "sources": []
+}

@@ -35,6 +35,14 @@ function isTyping(target: EventTarget | null): boolean {
   return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
 }
 
+const INTERACTIVE = 'a,button,summary,select,[role=button],[role=link]';
+
+/** Enter and Space natively activate focused controls; a prompt must not steal them. */
+function activatesControl(event: KeyboardEvent): boolean {
+  if (event.key !== 'Enter' && event.key !== ' ') return false;
+  return Boolean((event.target as Element | null)?.closest?.(INTERACTIVE));
+}
+
 /**
  * Keyboard-driven action bar. Mount one PromptBar per screen: each instance installs its own
  * window keydown listener, so two bars would both fire on the same key.
@@ -55,6 +63,7 @@ export function PromptBar(props: {
       event.ctrlKey ||
       event.altKey ||
       event.repeat ||
+      activatesControl(event) ||
       (isTyping(event.target) && event.key !== 'Escape')
     ) {
       return;

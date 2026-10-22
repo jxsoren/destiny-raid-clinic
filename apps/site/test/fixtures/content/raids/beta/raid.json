@@ -1,0 +1,18 @@
+{
+  "id": "beta",
+  "name": "Beta Raid",
+  "released": "2019-01-01",
+  "planet": {
+    "surface": "ice",
+    "tint": "#cfe3ee",
+    "atmosphere": "#bfe6ff",
+    "ring": false,
+    "size": 1,
+    "position": [0.6, 0.3],
+    "location": "Europa",
+    "tagline": ""
+  },
+  "encounters": ["gate"],
+  "glossary": [],
+  "sources": []
+}

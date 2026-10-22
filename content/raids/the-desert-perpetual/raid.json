@@ -1,0 +1,18 @@
+{
+  "id": "the-desert-perpetual",
+  "name": "The Desert Perpetual",
+  "released": "2025-07-19",
+  "planet": {
+    "surface": "desert",
+    "tint": "#e0b47a",
+    "atmosphere": "#ffd2a0",
+    "ring": false,
+    "size": 0.85,
+    "position": [0.66, 0.68],
+    "location": "Kepler",
+    "tagline": ""
+  },
+  "encounters": [],
+  "glossary": [],
+  "sources": []
+}

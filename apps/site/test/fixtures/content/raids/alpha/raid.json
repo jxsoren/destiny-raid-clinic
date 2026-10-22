@@ -1,0 +1,18 @@
+{
+  "id": "alpha",
+  "name": "Alpha Raid",
+  "released": "2015-01-01",
+  "planet": {
+    "surface": "venus",
+    "tint": "#d9b46a",
+    "atmosphere": "#ffd690",
+    "ring": false,
+    "size": 1,
+    "position": [0.2, 0.3],
+    "location": "Venus",
+    "tagline": "Alpha line."
+  },
+  "encounters": ["first", "second"],
+  "glossary": [],
+  "sources": []
+}

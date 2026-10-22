@@ -1,7 +1,7 @@
 {
   "name": "destiny-raid-clinic",
   "private": true,
-  "description": "Fan-made, browser-based trainers and guides for Destiny 2 raid encounters.",
+  "description": "Browser-based trainers and guides for Destiny 2 raid encounters.",
   "type": "module",
   "packageManager": "pnpm@12.10.1",
   "engines": {

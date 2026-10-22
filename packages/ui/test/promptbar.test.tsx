@@ -53,6 +53,27 @@ describe('PromptBar', () => {
     expect(open).not.toHaveBeenCalled();
   });
 
+  it('does not steal Enter or Space from a focused control, but handles them on the body', () => {
+    const go = vi.fn();
+    render(() => (
+      <>
+        <button type="button">Focus me</button>
+        <a href="/x">Open the page</a>
+        <PromptBar
+          touch={false}
+          prompts={[{ key: 'F', keys: ['enter', 'space'], label: 'Go', onPress: go }]}
+        />
+      </>
+    ));
+    const button = screen.getByRole('button', { name: 'Focus me' });
+    fireEvent.keyDown(button, { key: 'Enter' });
+    fireEvent.keyDown(button, { key: ' ' });
+    fireEvent.keyDown(screen.getByRole('link', { name: 'Open the page' }), { key: 'Enter' });
+    expect(go).not.toHaveBeenCalled();
+    fireEvent.keyDown(document.body, { key: 'Enter' });
+    expect(go).toHaveBeenCalledTimes(1);
+  });
+
   it('marks touch mode and supports the floating variant', () => {
     render(() => <PromptBar touch variant="floating" prompts={[{ key: '/', label: 'Search' }]} />);
     const nav = screen.getByRole('navigation', { name: 'Actions' });

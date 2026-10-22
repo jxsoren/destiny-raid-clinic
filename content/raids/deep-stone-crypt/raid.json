@@ -1,0 +1,18 @@
+{
+  "id": "deep-stone-crypt",
+  "name": "Deep Stone Crypt",
+  "released": "2020-11-21",
+  "planet": {
+    "surface": "ice",
+    "tint": "#cfe3ee",
+    "atmosphere": "#bfe6ff",
+    "ring": false,
+    "size": 0.9,
+    "position": [0.79, 0.24],
+    "location": "Europa",
+    "tagline": ""
+  },
+  "encounters": [],
+  "glossary": [],
+  "sources": []
+}

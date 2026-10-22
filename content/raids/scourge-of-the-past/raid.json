@@ -1,0 +1,18 @@
+{
+  "id": "scourge-of-the-past",
+  "name": "Scourge of the Past",
+  "released": "2018-12-07",
+  "planet": {
+    "surface": "lush",
+    "tint": "#5f8a6a",
+    "atmosphere": "#9fd3ff",
+    "ring": false,
+    "size": 0.8,
+    "position": [0.45, 0.14],
+    "location": "The Last City",
+    "tagline": ""
+  },
+  "encounters": [],
+  "glossary": [],
+  "sources": []
+}

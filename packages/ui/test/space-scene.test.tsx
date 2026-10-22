@@ -7,6 +7,7 @@ vi.mock('../src/space/SpaceRenderer', () => ({
   SpaceRenderer: { create: (...args: unknown[]) => create(...args) },
 }));
 
+import { HOME_VIEW, planetScreen } from '../src/space/layout';
 import { SpaceScene } from '../src/space/SpaceScene';
 import type { PlanetScreen, ScenePlanet } from '../src/space/types';
 
@@ -111,6 +112,18 @@ describe('SpaceScene', () => {
     expect(r.setView).toHaveBeenLastCalledWith({ cx: 0.5, cy: 0, zoom: 2 }, 600);
   });
 
+  it('describes only the selected planet button with describedBy', () => {
+    const other: ScenePlanet = { ...VOG, id: 'kf', name: "King's Fall" };
+    render(() => <SpaceScene planets={[VOG, other]} fallback selected="vog" describedBy="tip" />);
+    expect(screen.getByRole('button', { name: /Vault of Glass/ })).toHaveAttribute(
+      'aria-describedby',
+      'tip',
+    );
+    expect(screen.getByRole('button', { name: /King's Fall/ })).not.toHaveAttribute(
+      'aria-describedby',
+    );
+  });
+
   it('reports hover, focus and selection', () => {
     const onSelect = vi.fn();
     const onHover = vi.fn();
@@ -168,6 +181,24 @@ describe('SpaceScene', () => {
     expect(planet).toHaveClass('is-pending');
     emit([{ id: 'vog', x: 1, y: 2, r: 3, labelX: 0, labelY: 0 }]);
     await waitFor(() => expect(planet).not.toHaveClass('is-pending'));
+  });
+
+  it('reports layout from the CSS geometry before (or without) 3D', () => {
+    const onLayout = vi.fn();
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 1000,
+      bottom: 500,
+      width: 1000,
+      height: 500,
+      toJSON: () => ({}),
+    });
+    render(() => <SpaceScene planets={[VOG]} fallback onLayout={onLayout} />);
+    expect(onLayout).toHaveBeenCalledWith([planetScreen(VOG, HOME_VIEW, 1000, 500)]);
+    rect.mockRestore();
   });
 
   describe('media queries', () => {
