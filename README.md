@@ -2,13 +2,13 @@
 
 Browser-based trainers and guides for Destiny 2 raid encounters. Pick a seat in the fireteam, bots play the other five correctly, and every wipe ends with an explanation of what went wrong. Every raid and encounter follows the same template: a deterministic simulation plus a written guide, generated from the same data.
 
-> Status: **foundation**. The repo layout, tooling, CI and content templates are in place. The Rust simulation engine is next. A single-page Atheon prototype lives in `prototype/` until it's ported.
+> Status: **foundation**. The repo layout, tooling, CI and content templates are in place. The TypeScript encounter-trainer engine (simulation, renderer, HUD, all templated across raids) is next; see `docs/superpowers/specs/2026-10-22-encounter-trainer-engine-design.md`. A single-page Atheon prototype lives in `prototype/` until it's ported and retired.
 
 ## Getting started
 
 You need:
 
-- **Rust via [rustup](https://rustup.rs)**. It installs the exact toolchain pinned in `rust-toolchain.toml`, including the WebAssembly target. Homebrew's Rust works for most tasks, but it can't add the WebAssembly target later.
+- **Rust via [rustup](https://rustup.rs)**, for `raidlint` (the content linter/scaffolder — the only Rust in this repo). It installs the exact toolchain pinned in `rust-toolchain.toml`. Homebrew's Rust works fine for this.
 - **Node >=22.12** and **pnpm**: `npm install -g pnpm@12.10.1` (or `brew install pnpm`), matching `packageManager` in `package.json`. Don't use `corepack enable`. The Corepack bundled with Node 23 can't run pnpm 12 (`Cannot find module …/bin/pnpm.cjs`).
 - **[just](https://just.systems)**, the task runner (`brew install just` or `cargo install just`).
 
@@ -24,20 +24,24 @@ just              # list all tasks
 
 ```
 crates/
-  sim/          deterministic simulation engine (no I/O, no web APIs)
   raidlint/     validates content against the templates; scaffolds raids and encounters
 content/
   raids/<raid>/                    raid.json · guide.mdoc · encounters/
-    encounters/<NN>-<encounter>/   encounter.json · guide.mdoc · sources.md · replays/
+    encounters/<NN>-<encounter>/   encounter.json · guide.mdoc · sources.md · replays/ · mechanics.ts (optional)
 templates/      the files every new raid and encounter starts from
-prototype/      the original single-page Atheon trainer (reference until ported)
+prototype/      the original single-page Atheon trainer (reference until ported and retired)
 apps/site/      the Astro site (pages, layouts)
 packages/ui/    design tokens, type roles and Solid components
+packages/sim/   (planned) TypeScript encounter simulation engine and mechanics primitives
+packages/renderer/  (planned) three.js scene-building, shared across every encounter
+packages/hud/   (planned) Solid HUD components (objectives, radar, callouts)
 scripts/        repo scripts (style lint)
 STYLEGUIDE.md   how everything looks, reads and behaves (read before any UI work)
 ```
 
-More crates (`primitives`, `encounters`, `content`, `proto`, `sim-wasm`, `server`) and the `apps/site` web client arrive in later build steps.
+The simulation, renderer and HUD are plain TypeScript, not Rust/WASM — see
+`docs/superpowers/specs/2026-10-22-encounter-trainer-engine-design.md` for why, and for how
+encounters share a mechanics-primitives library instead of each being a one-off build.
 
 ## Adding a raid or an encounter
 
@@ -71,11 +75,11 @@ Sections tagged with `{% … /%}` in the templates (roles, callout map, glossary
 
 ## Simulation rules
 
-The simulation must give bit-identical results natively and in WebAssembly, for replays, multiplayer and regression tests. `crates/sim/clippy.toml` makes the main hazards compile errors in CI:
-
-- `std` trig, exp and pow functions (which differ by platform)
-- `mul_add`
-- `HashMap` and `HashSet` (unspecified iteration order)
+The simulation (`packages/sim`, TypeScript) is deterministic given the same seed, inputs and
+content version — no multiplayer server is in scope, so determinism exists for reproducible
+replays and regression tests within a single run, not cross-host bit-identity. The renderer and
+HUD never own gameplay state; they read a one-way snapshot the sim produces each tick. See
+`docs/superpowers/specs/2026-10-22-encounter-trainer-engine-design.md` for the full design.
 
 ## The Atheon prototype
 
