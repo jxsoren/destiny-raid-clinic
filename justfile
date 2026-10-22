@@ -51,4 +51,4 @@ new-encounter raid order id name:
 
 # Serve the single-page Atheon prototype at http://localhost:8080
 prototype:
-    pnpm run prototype
+    node prototype/serve.mjs

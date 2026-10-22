@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Atheon Encounter Trainer</title>
-<meta name="description" content="Fan-made 3D trainer for the Atheon encounter in Vault of Glass. Pick a seat, bots play the rest, every wipe is explained.">
+<meta name="description" content="3D trainer for the Atheon encounter in Vault of Glass. Pick a seat, bots play the rest, every wipe is explained.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="./atheon.css">
 </head>
@@ -12,7 +12,7 @@
 <div class="wrap">
   <header>
     <div>
-      <div class="kicker">Vault of Glass · Raid · Encounter 7 · Fan-made trainer</div>
+      <div class="kicker">Vault of Glass · Raid · Encounter 7</div>
       <h1><b>Atheon</b>, Time’s Conflux</h1>
     </div>
     <p class="lede">A 3D, six-seat rehearsal of the Atheon fight. Three Guardians go through a time gate while three hold the Vault. Pick a seat; bots play the other five correctly, and every wipe explains what went wrong.</p>
@@ -72,30 +72,7 @@
   </div>
 
   <section>
-    <h2>Making it feel like Destiny</h2>
-    <p>Research notes behind this version, and what each finding changed on screen. This is a fan project: no Bungie art, logos or fonts are used. Every model is built from simple shapes in code.</p>
-    <div class="cols">
-      <div><h4>HUD layout</h4><p>Destiny 2 keeps the radar top-left. Health and buffs sit bottom-left, with buff icons above the health bar, and the Final Shape redesign put helpful effects on the left and debuffs on the right. This HUD follows that layout, with timers and fill meters on each effect.</p><p class="src"><a href="https://www.ludo.guide/guide/destiny-2/getting-started/controls-user-interface" target="_blank" rel="noopener">Ludo.guide</a> · <a href="https://www.keengamer.com/articles/news/the-best-thing-you-missed-from-the-destiny-2-the-final-shape-preview/" target="_blank" rel="noopener">KeenGamer</a></p></div>
-      <div><h4>Boss bar</h4><p>Destiny 2 splits tougher enemies' health bars into thirds, because thresholds often signal a new phase. Bosses get a yellow bar with a skull. The bar here is yellow, split into thirds, and has a white "chip" trail that lags behind damage.</p><p class="src"><a href="https://www.gamedeveloper.com/design/ux-enhancements-from-destiny-1-to-destiny-2" target="_blank" rel="noopener">Game Developer</a> · <a href="https://progameguides.com/destiny/how-to-handle-the-new-prismatic-enemy-type-in-destiny-2-the-final-shape/" target="_blank" rel="noopener">Pro Game Guides</a></p></div>
-      <div><h4>Typography</h4><p>Bungie hasn't published its UI typeface, and fan claims conflict. The in-game type reads as a clean, neutral grotesque. Hanken Grotesk is a free face in that family. Here it's set in light, widely spaced capitals for announcements and semibold for labels.</p><p class="src"><a href="https://madegooddesigns.com/?p=9934" target="_blank" rel="noopener">Made Good Designs</a></p></div>
-      <div><h4>Vex materials</h4><p>Vex are built from a metal that looks like hammered brass. Their minds are a milky suspension of radiolaria held in an exposed core in the abdomen, and they have triangular heads with a single red eye. Atheon here has a brass body, a glowing white core that flares during damage, and a red eye.</p><p class="src"><a href="https://www.destinypedia.com/Vex" target="_blank" rel="noopener">Destinypedia: Vex</a></p></div>
-      <div><h4>The Vault itself</h4><p>The Vault sits deep inside Venus. Sync plates feed transfer gates into the past and future, and Vex spires rise as pillars of white energy. That's why there are glowing white spire columns, plate-linked gate arches, and a chamber tinted by era: green-gold for Venus (the past), rust-red for Mars (the future).</p><p class="src"><a href="https://www.destinypedia.com/Vault_of_Glass_(location)" target="_blank" rel="noopener">Destinypedia: Vault of Glass</a> · <a href="https://destinypedia.com/Spire" target="_blank" rel="noopener">Spire</a></p></div>
-      <div><h4>Oracle layout</h4><p>Atheon's Oracles spawn at six spots. 1, 2 and 3 are up the hall toward Atheon: on the left wall, on the middle stairs, and on the right wall. 4, 5 and 6 are by the Mars gate, at the front of the DPS platform, and by the Venus gate. Placement here follows two community encounter maps, including TheRedDelilah’s Atheon map. Three Oracles spawn per wave, and there are three waves. The most popular callout scheme reads the back row left to right, then the front row: <strong style="color:#fff">1 2 3 back, 4 5 6 front</strong>. Some teams number clockwise instead. Agree on yours before the pull.</p><p class="src"><a href="https://www.bungie.net/en/Forums/Post/259115550" target="_blank" rel="noopener">Bungie.net callout poll</a> · <a href="https://gamerant.com/destiny-2-how-to-beat-atheon-in-the-vault-of-glass/" target="_blank" rel="noopener">Game Rant</a> · <a href="https://x.com/Kujay_/status/1396502965746208768" target="_blank" rel="noopener">Kujay (clockwise)</a></p></div>
-      <div><h4>Light and glow</h4><p>Destiny lights its scenes with strong emissive sources against dark, foggy spaces. This version uses Three.js with an Unreal-style bloom pass, exponential fog, and drifting radiolaria particles. Only the Oracles, the core, the plates and the spires glow, so they stand out as the things you need to look at.</p><p class="src">three.js r160 + UnrealBloomPass (MIT)</p></div>
-    </div>
-  </section>
-
-  <section>
-    <h2>How far this can go</h2>
-    <p>Each step closer to the real game costs more effort. These estimates are for one experienced developer.</p>
-    <div class="tiers">
-      <div class="tier"><b>This page</b><p>Current three.js. Reflective metal and glass, a live mirrored glass floor, soft shadows, ambient occlusion, cinematic color grading, light shafts and low fog. A particle system for teleports, blasts, Oracle shatters and cleanses. Animated Vex and Guardian rigs. Synthesized audio, including a distinct tone for each Oracle spot. Quality adjusts itself to your device, or you can set it.</p><span>done</span></div>
-      <div class="tier"><b>Accurate map</b><p>The arena is traced from two community encounter maps. They provide the floor outline, Atheon’s position on the main floor, the raised top room with its pillars and the teleport spawn, the wide stairs stepping down through the hall, all six Oracle spots, the angled Mars and Venus gates, the raised DPS platform with its diagonal stairs, the sunken sync-plate level reached by side stairs, and the rally banner at the entrance. Bots and the simulation use the same floor plan, so walls and stairs are real for everyone.</p><span>done</span></div>
-      <div class="tier"><b>Modeled assets</b><p>Low-poly Vex, Guardian and arena models made in Blender and exported as glTF, with baked lighting and real glass and reflection materials. Biggest visual jump.</p><span>3–6 weeks</span></div>
-            <div class="tier"><b>Third-person camera</b><p>Over-the-shoulder view, so each seat sees only what that player would see. Most authentic, but slower to learn from than the overhead view.</p><span>3–4 weeks</span></div>
-      <div class="tier"><b>Licensed look</b><p>Real Destiny fonts, icons or models need permission from Bungie. Fan projects can't ship them.</p><span>not available</span></div>
-    </div>
-    <p class="note">Mechanics follow community guides for the 2021 Destiny 2 version: <a href="https://www.pcgamesn.com/destiny-2/vault-of-glass-guide" style="color:var(--buff)">PCGamesN</a>, <a href="https://www.dexerto.com/destiny/ultimate-destiny-2-vault-of-glass-raid-guide-1578682/" style="color:var(--buff)">Dexerto</a>, <a href="https://www.destinypedia.com/Atheon,_Time%27s_Conflux" style="color:var(--buff)">Destinypedia</a>. Sources disagree on the name of the teleport debuff ("Marked by the Void" or "Marked for Negation"); this page uses Destinypedia's. In the game Atheon chooses who to teleport at random. Here the away team is always the same three seats, so you get the job you picked. Health, timers and add counts are tuned for teaching.</p>
+    <p class="note">Mechanics follow community guides for the 2021 Destiny 2 version. In the game Atheon chooses who to teleport at random; here the away team is always the same three seats, so you get the job you picked. Health, timers and add counts are tuned for teaching.</p>
   </section>
 </div>
 
