@@ -1221,7 +1221,21 @@ async function initEngine(){
 
   // ---------- input ----------
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), ground = new THREE.Plane(new THREE.Vector3(0,1,0), 0), hit = new THREE.Vector3();
+  const DRAG_THRESHOLD_PX = 6, DRAG_YAW_PER_PX = .006;
+  let dragging = false, dragMoved = false, dragStartX = 0, dragStartYaw = 0;
   canvas.addEventListener('pointerdown', e => {
+    dragging = true; dragMoved = false; dragStartX = e.clientX; dragStartYaw = camYaw;
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - dragStartX;
+    if (!dragMoved && Math.abs(dx) > DRAG_THRESHOLD_PX) dragMoved = true;
+    if (dragMoved) camYaw = Math.max(-YAW_LIMIT, Math.min(YAW_LIMIT, dragStartYaw - dx*DRAG_YAW_PER_PX));
+  });
+  ['pointerup','pointercancel'].forEach(ev => canvas.addEventListener(ev, () => { dragging = false; }));
+  canvas.addEventListener('click', e => {
+    if (dragMoved) { dragMoved = false; return; }
     if (!you || paused || watch) return;
     const r = canvas.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
     if (you.key==='shooter' && you.loc==='room'){
