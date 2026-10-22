@@ -173,45 +173,66 @@ Invoke `/review-code` (run it from inside the worktree, `git -C tmp/worktrees/<b
 
 Check whether the issue touched UI: any changed file under a frontend path (e.g. components, views, pages, styles) or the `ISSUE_ANALYSIS.md` Affected Areas mentioning UI/frontend. If not a UI fix, skip to Step 9.
 
-If it is a UI fix, first classify it:
+If it is a UI fix, every preview gets a **screenshot** and, when the change moves or is only visible over time (animation, pulsing/bobbing effects, camera rotation, canvas/WebGL rendering, transitions, drag interactions), a **short clip**. One script captures both.
 
-- **Static UI fix** (layout, copy, color, spacing, a single element's appearance) → capture **screenshots**.
-- **Motion/rendering fix** (animation, camera/isometric rotation, canvas/WebGL rendering, transitions, drag interactions, anything where the bug or fix is only visible over time) → capture a **screen recording**.
+Facts this step relies on (each one cost a failed attempt to learn):
+- `gh` has no way to upload files. GitHub only accepts attachments through its web comment box, so the upload needs a browser signed in to GitHub (8.5c).
+- GitHub plays **mp4/mov** inline. A `.webm` attachment shows up as a download link. Playwright records webm, and its bundled ffmpeg can only write VP8, so converting needs a full `ffmpeg` on PATH.
+- Headless Playwright Chromium renders the three.js/WebGL scenes fine for a preview. It is not a substitute for the real-GPU check in the README.
+- Never commit media to the repo or park it in release assets to get a URL.
 
-### 8.5a — Static UI fix: screenshots
+### 8.5a — Capture
 
-1. Use the `run` skill (or the project's `start-dev` skill) to launch the app in the worktree and navigate to the affected screen(s).
-2. Capture a screenshot of the changed UI showing the fix in effect (chrome-devtools-mcp `take_screenshot`). Capture a "before" screenshot too if feasible (e.g. base branch in a scratch checkout) — skip the before-shot if impractical and just post the after-shot with a text description.
+1. **Tools, once per machine.** Playwright already ships with `apps/site`, so install nothing into the repo. Its Chromium: `pnpm --filter site exec playwright install chromium`. ffmpeg: `ffmpeg -version`; if missing, `brew install ffmpeg` (macOS) or `winget install Gyan.FFmpeg` (Windows).
+2. **Serve the worktree** in the background: `just prototype` (`http://localhost:8080`) for prototype changes, `just dev` (`http://localhost:4321`) for the site. Confirm the page answers before recording.
+3. **Record** into a fresh scratch folder (not the repo):
+   ```bash
+   node .claude/skills/develop-issue/scripts/record-preview.mjs \
+     --url <page-url> --out <scratch-dir> --click "<text to click>" --seconds 12
+   ```
+   `--click` can repeat (e.g. pick a seat, then a button). Pick a view where the change is obvious: for a player-visibility change, a seat that stays in the crowd. The script writes `preview.png` and `preview.mp4` (H.264, about 1 MB for 12 s), deletes its intermediate files, and warns about any page errors. The mp4 starts once the clicks have landed; page load and clicks can take 20+ seconds under headless WebGL, and that time is cut. Keep clips short: GitHub caps free-plan video uploads at 10 MB.
+4. **Look at `preview.png` before posting.** If it doesn't show the change, adjust the clicks or duration and record again.
+5. A "before" capture from the base branch is optional. Only do it when the difference is hard to describe in words.
 
-### 8.5b — Motion/rendering fix: Playwright recording
+### 8.5b — Upload to GitHub
 
-1. Check for Playwright in the worktree: `npx --no-install playwright --version`. If missing, install it scoped to the worktree (`npm install -D playwright && npx playwright install chromium --with-deps`) — do not add it as a permanent dependency unless the user asks; it's a one-off tool for this capture.
-2. Write a small throwaway script (in the scratchpad, not committed) that:
-   - Launches Chromium via Playwright with `recordVideo: { dir: <scratch-dir> }`.
-   - Navigates to the affected screen and drives the interaction that shows the change (e.g. triggers the rotation/animation).
-   - Closes the context so the video file flushes to disk.
-3. Repeat against the base branch (checked out in a scratch worktree) for a "before" clip if practical; otherwise just capture "after" and describe the prior behavior in words.
-4. Convert the recorded `.webm` to a short GIF with `ffmpeg` **only if GIF is specifically wanted**; otherwise prefer posting the `.webm`/`.mp4` directly — GitHub renders both inline, video compresses better, and it skips a lossy conversion step. Keep clips short (a few seconds, trimmed to the relevant motion).
-5. Delete the scratch worktree/script when done; keep only the final video file.
+Use a browser tool that is signed in to GitHub as the user (Claude in Chrome, or another browser MCP):
 
-### 8.5c — Post it everywhere it's useful
+1. Open the PR page and find the **new comment** box's file input (the "Paste, drop, or click to add files" control under the comment textarea).
+2. Upload `preview.png` and `preview.mp4` to that input with the browser tool's file-upload action. Don't click the input; that opens a native file picker the agent can't use.
+3. Wait a few seconds, then read the attachment URLs out of the textarea with a page script, not by eye (long ids are easy to misread):
+   ```js
+   [...document.querySelectorAll('textarea')].map(t => t.value)
+     .join('\n').match(/https:\/\/github\.com\/user-attachments\/assets\/[0-9a-f-]+/g)
+   ```
+   The image URL comes first if the png was uploaded first.
+4. **Clear the textarea without posting.** The uploads stay valid; the draft is only a way to get URLs.
 
-`gh` can't attach files to the PR body or comments directly, so the file must already be reachable (e.g. uploaded via a `gh pr comment`/`gh api` asset upload flow, or dragged into the GitHub UI if doing this interactively). Once you have an embeddable URL or asset reference for the screenshot(s)/video:
+If no signed-in browser tool is available, stop here: send the user the two files, say the preview isn't posted, and skip to the cleanup at the end of 8.5c only after they confirm they have the files.
 
-1. Post a Draft PR comment showcasing the change:
+### 8.5c — Post, verify, clean up
+
+1. Write the comment body to a scratch file and post it with `gh`, so the text is exact:
+   ```markdown
+   UI preview for #<number>: <one or two sentences on what to look for, and anything odd in the clip, e.g. an unplayed seat failing its mechanic>.
+
+   <img width="1280" alt="<short description>" src="<image-url>" />
+
+   <video-url>
+   ```
+   The video URL goes **on its own line, bare** (no Markdown link syntax). That is what makes GitHub render a player.
    ```bash
    gh pr comment <branch-name> --body-file <comment-file>
    ```
-   Comment body: a short description of what changed, plus the embedded screenshot(s) or video.
-2. **Also update the PR description itself** so the preview is visible without scrolling to comments:
+2. **Also add the preview to the PR description** so it is visible without scrolling: read the body with `gh pr view <branch-name> --json body --jq .body`, append a `## Preview` section with the same image and video lines, and write it back with `gh pr edit <branch-name> --body-file <updated-body-file>`. Don't clobber the existing body.
+3. **Verify** the post: `gh api repos/{owner}/{repo}/issues/comments/<id> --jq .body` shows both URLs. If a browser tool is available, load the comment and check the video element loaded (`readyState` 4, non-zero `duration`).
+4. **Delete the local media** once the post is verified, so captures don't pile up on disk:
    ```bash
-   gh pr edit <branch-name> --body-file <updated-body-file>
+   node .claude/skills/develop-issue/scripts/record-preview.mjs --clean --out <scratch-dir>
    ```
-   Append a `## Preview` section to the existing PR body (read current body with `gh pr view <branch-name> --json body` first, don't clobber it) with the same media embedded.
+   It only deletes a folder holding nothing but its own `preview.*` files, so point `--out` at a folder made just for this capture. Also delete the comment and body scratch files and stop the dev server. GitHub keeps its own copy of the uploads. Do this even when the post failed and the user took the files, once they confirm they have them.
 
-If media can't be captured or embedded (no dev server, no image/asset hosting available), skip 8.5b/8.5c and note in the final report that no preview was posted.
-
-If the dev server can't be started or the screenshot can't be captured, skip this step and note in the final report that a UI preview comment was not posted.
+If the dev server can't start or nothing can be captured, skip this step and say in the final report that no UI preview was posted.
 
 ## Step 9 — Report
 
