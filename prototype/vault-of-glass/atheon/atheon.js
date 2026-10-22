@@ -568,6 +568,8 @@ function togglePause(){ if (S.result || S.phase==='idle') return; paused = !paus
 $('bPause').onclick = togglePause;
 $('bSpeed').onclick = () => { speed = speed===1 ? .5 : 1; $('bSpeed').textContent = `Speed ${speed===1 ? '1' : '½'}×`; };
 $('bRoles').onclick = () => { paused = true; showOverlay('start'); };
+$('bRotL').onclick = () => { camYaw = Math.max(-YAW_LIMIT, camYaw - ROTATE_STEP); };
+$('bRotR').onclick = () => { camYaw = Math.min(YAW_LIMIT, camYaw + ROTATE_STEP); };
 
 // =====================================================================
 // AUDIO (Web Audio, all synthesized, no files)
