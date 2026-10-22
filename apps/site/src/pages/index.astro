@@ -1,26 +1,27 @@
 ---
-import { Divider, ItemHeader } from '@raid-clinic/ui';
+import { join } from 'node:path';
+import '@raid-clinic/ui/space.css';
+import { Director } from '../components/Director';
+import trainers from '../data/trainers.json';
 import Base from '../layouts/Base.astro';
+import { loadRaids, toDirector } from '../lib/raids';
+
+// content/raids is the single source of truth. process.cwd() is the site root (apps/site);
+// import.meta.url would point into the prerender bundle instead.
+const director = toDirector(loadRaids(join(process.cwd(), '../../content/raids'), trainers));
 ---
 
-<Base title="Raid Clinic">
-  <main class="placeholder">
-    <ItemHeader tile="logo" name="Raid Clinic" type="Raid trainer" flavor="Learn it before the pull." />
-    <Divider />
-    <p>
-      The raid Director is being built. Until then, see the <a href="/styleguide">styleguide</a>, or run{' '}
-      <code>just prototype</code> for the Atheon trainer.
-    </p>
+<Base
+  title="Raid Clinic"
+  description="Pick a raid. Bots run the other seats, and every wipe explains what went wrong."
+>
+  <main>
+    <Director
+      client:load
+      planets={director.planets}
+      raids={director.raids}
+      featured={director.featured}
+      repoUrl="https://github.com/jxsoren/destiny-raid-clinic"
+    />
   </main>
 </Base>
-
-<style>
-  .placeholder {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 48px 16px;
-  }
-  a {
-    color: var(--glow);
-  }
-</style>

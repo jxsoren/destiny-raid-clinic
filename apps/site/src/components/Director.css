@@ -1,0 +1,92 @@
+/* The Director fills the viewport; everything else is an overlay on the space scene. */
+.director {
+  position: fixed;
+  inset: 0;
+}
+.director__title {
+  position: absolute;
+  left: 4%;
+  bottom: 7%;
+  pointer-events: none;
+}
+.director__title .t-name {
+  margin: 0;
+  font-size: 34px;
+}
+.director__title .t-type {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.director__mark {
+  position: absolute;
+  right: 4%;
+  bottom: 7%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  pointer-events: none;
+}
+.director .rc-prompts--floating {
+  position: absolute;
+  left: 50%;
+  bottom: 3%;
+  transform: translateX(-50%);
+}
+.director__search {
+  position: absolute;
+  left: 4%;
+  top: 5%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.director__search input {
+  width: min(320px, 70vw);
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--divider);
+  border-radius: 0;
+}
+.director__menu {
+  position: absolute;
+  right: 4%;
+  top: 5%;
+  display: grid;
+  gap: 2px;
+  min-width: 200px;
+  background: var(--tip-body);
+  border-top: 2px solid var(--tip-edge);
+}
+.director__menu a {
+  padding: 10px 14px;
+  color: var(--tip-text);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+}
+.director__menu a:hover,
+.director__menu a:focus-visible {
+  outline: 2px solid var(--frame);
+  outline-offset: -2px;
+}
+/* Phones in portrait: only the selected planet keeps its label. */
+.director--compact .rc-planet:not(.is-selected) .rc-planet__label {
+  display: none;
+}
+@media (max-width: 700px) {
+  .director__title .t-name {
+    font-size: 26px;
+  }
+  .director__mark span {
+    display: none;
+  }
+}
