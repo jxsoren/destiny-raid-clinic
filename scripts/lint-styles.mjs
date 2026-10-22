@@ -9,8 +9,13 @@ const ROOTS = ['apps', 'packages'];
 const EXTENSIONS = ['.css', '.ts', '.tsx', '.astro', '.js', '.mjs', '.mdx', '.mdoc'];
 const SKIP_DIRS = new Set(['node_modules', 'dist', '.astro', 'coverage']);
 const TOKENS = 'packages/ui/src/tokens.css';
-const COLOR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/;
+// Hex colors skip HTML entities (&#8217;) and URL anchors (href="#add"); CSS color functions are case-insensitive.
+const COLOR =
+  /(?<![&\w])(?<!href=\{?["'])#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb|color-mix)\(/i;
 const FONT = /font-family\s*:(?!\s*var\()/;
+// `font:` shorthand with a literal family; `var(` anywhere in the declaration or a leading `inherit` is fine.
+const FONT_SHORTHAND = /(?<![\w-])font\s*:(?!\s*inherit\b)(?![^;},\n]*var\()/;
+const FONT_JS = /\bfontFamily\s*:\s*(['"`])(?!var\()/;
 const FAN_MADE = /fan[\s-]?made/i;
 const ALLOW = 'lint-allow-color';
 
@@ -28,6 +33,13 @@ export function lintText(path, text) {
     }
     if (path !== TOKENS && FONT.test(line)) {
       problems.push(`${at}: font-family must be var(--font-ui)`);
+    }
+    const fontExempt = colorsAllowed || line.includes(ALLOW);
+    if (!fontExempt && FONT_SHORTHAND.test(line)) {
+      problems.push(`${at}: font shorthand must use var(--font-ui) for the family`);
+    }
+    if (!fontExempt && FONT_JS.test(line)) {
+      problems.push(`${at}: fontFamily must be var(--font-ui)`);
     }
     if (FAN_MADE.test(line)) {
       problems.push(`${at}: don't say "fan-made" in the UI`);
