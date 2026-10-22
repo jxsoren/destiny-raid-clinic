@@ -1,0 +1,30 @@
+---
+import '@fontsource/roboto/300.css';
+import '@fontsource/roboto/300-italic.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/500.css';
+import '@fontsource/roboto/700.css';
+import '@raid-clinic/ui/tokens.css';
+import '@raid-clinic/ui/roles.css';
+import '@raid-clinic/ui/components.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+const { title, description = 'Learn raid encounters before the pull.' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

@@ -12,3 +12,6 @@ AGENTS.md
 .cursor/
 docs/
 .superpowers/
+# Astro
+apps/site/.astro/
+apps/site/dist/

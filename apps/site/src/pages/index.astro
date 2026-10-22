@@ -1,0 +1,26 @@
+---
+import { Divider, ItemHeader } from '@raid-clinic/ui';
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Raid Clinic">
+  <main class="placeholder">
+    <ItemHeader tile="logo" name="Raid Clinic" type="Raid trainer" flavor="Learn it before the pull." />
+    <Divider />
+    <p>
+      The raid Director is being built. Until then, see the <a href="/styleguide">styleguide</a>, or run
+      <code>just prototype</code> for the Atheon trainer.
+    </p>
+  </main>
+</Base>
+
+<style>
+  .placeholder {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 16px;
+  }
+  a {
+    color: var(--glow);
+  }
+</style>
