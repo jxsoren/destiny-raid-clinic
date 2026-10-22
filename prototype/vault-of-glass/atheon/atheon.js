@@ -129,7 +129,8 @@ const ROSTER = [
   {key:'adds', label:'Add Clear', tag:'ADDS', color:'#b9e07a', team:'home', desc:'Shoot Supplicants before they reach the Vault team, and don’t stand close together.'},
 ];
 
-let S, you = null, watch = false, speed = 1, paused = true, lastRole = null;
+const HOLD_CLAIM = .6; // seconds you hold E to claim the Aegis
+let S, you = null, watch = false, speed = 1, paused = true, lastRole = null, hintOrigin = null;
 const keys = new Set(); let tap = null, interactHeld = false;
 const dist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
 const away = () => S.players.filter(p => p.loc==='room');
@@ -138,7 +139,7 @@ const youSee = loc => watch || !you || you.loc===loc || S.phase!=='away';
 
 function newState(){
   S = {phase:'idle', t:0, t2:0, hp:100, cycle:1, dest:null, set:0, seq:[], call:[], oracles:[], shotIdx:0, shotT:0, oracleT:0,
-       sub:'', relic:null, cleanCd:0, closedT:0, portalOpen:false, enemies:[], banner:null, log:[], result:null,
+       sub:'', relic:null, cleanCd:0, holdT:0, closedT:0, portalOpen:false, enemies:[], banner:null, log:[], result:null,
        spT:0, moved:false, venT:0, marked:null, detainT:0, doneT:0, fx:[], killed:0, toKill:0};
   S.players = ROSTER.map((r,i) => ({...r, id:i, x:0, y:0, loc:'vault', meter:0, hp:100, hurtT:9, detained:false, bub:0, you:false}));
   S.players.forEach((p,i) => { const a = i/6*Math.PI*2; p.x = RALLY.x + Math.cos(a)*40; p.y = RALLY.y + Math.sin(a)*40; });
@@ -320,7 +321,10 @@ function phaseLogic(dt){
         if (S.closedT > 7) return wipe('The time gate closed', `The away team went to ${plate.name}. A Vault player has to stand on the ${plate.name} sync plate (${S.dest==='mars' ? 'left' : 'right'}) for the whole trip, or the gate closes with the away team still inside.`);
       }
       S.spT -= dt; if (S.spT <= 0){ S.spT = 1.9; spawnSupplicant(); }
-      if (!S.relic.held && dist(R,S.relic) < 30 && (R.you ? interactHeld : true)){ S.relic.held = true; log('The Aegis is claimed','good'); }
+      // Your claim is a short hold (the prompt's ring fills while you hold E); bots claim on arrival
+      const nearRelic = dist(R,S.relic) < 30;
+      if (R.you) S.holdT = nearRelic && interactHeld && !S.relic.held ? S.holdT + dt : 0;
+      if (!S.relic.held && nearRelic && (R.you ? S.holdT >= HOLD_CLAIM : true)){ S.relic.held = true; log('The Aegis is claimed','good'); }
       if (S.relic.held){ S.relic.x = R.x; S.relic.y = R.y; }
       if (!R.you && S.relic.held && away().some(p => p.meter > .5)) cleanse();
       if (S.t > 1) for (const p of away()){
@@ -465,7 +469,36 @@ function ghost(){
   }
   return '';
 }
-let feedSeen = new Set(), lastHp = 100, chipT = 0;
+// Interact prompt, Destiny style: one contextual prompt low and center, shown only when there is
+// something for you to do right now. A key cap and an action; a ring around the cap fills while you
+// hold (or while an ability recharges). The first seconds also get a movement hint.
+//   keys: caps to draw  label: action  ring: draw the ring  hold: say HOLD  prog: 0..1 ring fill  state: ready or cooling
+function interactPrompt(){
+  if (!you || watch || S.phase==='idle' || S.result) return null;
+  const inGate = S.phase==='away';
+  if (you.key==='relic' && inGate && S.relic){
+    if (!S.relic.held){
+      if (dist(you, S.relic) < 30) return {act:'e', keys:['E'], label:'Claim the Aegis', ring:true, hold:true, prog:Math.min(1, S.holdT / HOLD_CLAIM), state:'ready'};
+    } else return {act:'q', keys:['Q'], label:'Cleanse', ring:true, prog:1 - S.cleanCd/1.5, state:S.cleanCd > 0 ? 'cooling' : 'ready'};
+  }
+  if (you.key==='shooter' && inGate && S.sub==='shoot' && S.shotIdx % 2 === 0)
+    return {keys:[String(S.call[S.shotIdx] + 1)], label:`Shoot Oracle ${S.call[S.shotIdx] + 1}`, state:'ready'};
+  if (you.key==='caller' && inGate && (S.sub==='show' || S.sub==='call') && S.call.length < 3)
+    return {keys:['1–6'], label:`Call the order  ${S.call.length}/3`, state:'ready'};
+  if (hintOrigin && !you.detained && S.t < 14 && S.phase==='opening' && dist(you, hintOrigin) < 8)
+    return {keys:['W','A','S','D'], label:'Move', state:'ready'};
+  return null;
+}
+// The thing you should be heading for, marked over it in the world (hidden once you're in range)
+function objectiveTarget(){
+  if (!you || watch || S.phase!=='away') return null;
+  if (you.key==='relic' && S.relic && !S.relic.held && dist(you, S.relic) >= 30)
+    return {x:S.relic.x, y:S.relic.y, h:13, label:'Aegis', color:'#f2c46b'};
+  const pl = PLATES[S.dest];
+  if (you.key==='plate' && pl && dist(you, pl) >= pl.r) return {x:pl.x, y:pl.y, h:12, label:`${pl.name} plate`, color:'#7fe0d0'};
+  return null;
+}
+let feedSeen = new Set(), lastHp = 100, chipT = 0, ipHtml = '', ipLive = null;
 function hud(){
   $('objs').innerHTML = objectivesList().map(o => `<li class="${o.done ? 'done' : ''} ${o.warn ? 'warn' : ''}">${o.t}${o.v ? `<span>${o.v}</span>` : '<span></span>'}</li>`).join('');
   $('team').innerHTML = S.players.map(p => `<div class="${p.loc==='room' && you && you.loc==='vault' && !watch ? 'gone' : ''}"><small>${p.loc==='room' ? PLATES[S.dest]?.name.toUpperCase() || '' : (p.detained ? 'DETAINED' : '')}</small>${p.you ? 'YOU' : p.tag}<i style="background:${p.color}"></i></div>`).join('');
@@ -485,9 +518,10 @@ function hud(){
   [...$('pad').children].forEach(b => b.disabled = !canCall);
   $('padClr').disabled = !canCall;
   $('padOut').textContent = callerYou ? (S.phase==='away' && S.call.length ? S.call.map(i => i+1).join(' · ') : '—') : 'Used by the Caller';
-  $('bE').hidden = !(you && you.key==='relic' && S.phase==='away' && S.relic && !S.relic.held && !paused);
-  $('bQ').hidden = !(you && you.key==='relic' && S.phase==='away' && S.relic && S.relic.held && !paused);
-  $('bQ').disabled = S.cleanCd > 0;
+  ipLive = paused ? null : interactPrompt();
+  const ring = '<svg viewBox="0 0 48 48" aria-hidden="true"><circle class="bg" cx="24" cy="24" r="21"/><circle class="fg" cx="24" cy="24" r="21"/></svg>';
+  const html = !ipLive ? '' : `<${ipLive.act ? 'button' : 'div'} class="ip ${ipLive.state}"${ipLive.act ? ` data-act="${ipLive.act}"` : ''}><span class="ipkey">${ipLive.ring ? ring : ''}${ipLive.keys.map(k => `<kbd>${k}</kbd>`).join('')}</span><span class="iplbl">${ipLive.hold ? '<small>Hold</small>' : ''}${ipLive.label}</span></${ipLive.act ? 'button' : 'div'}>`;
+  if (html !== ipHtml){ $('interact').innerHTML = html; ipHtml = html; }
   $('pausedLbl').hidden = !(paused && !S.result && S.phase!=='idle' && overlay.hidden);
   drawRadar();
 }
@@ -535,6 +569,7 @@ function start(roleKey){
   feedSeen = new Set(); $('feed').innerHTML = ''; lastHp = 100;
   if (window.__resetScene) window.__resetScene();
   setPhase('opening');
+  hintOrigin = you ? {x:you.x, y:you.y} : null;
 }
 
 function callDigit(n){
@@ -557,10 +592,15 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { const k = e.key.toLowerCase(); keys.delete(k); if (k==='e') interactHeld = false; });
 addEventListener('blur', () => { keys.clear(); interactHeld = false; });
-const bE = $('bE');
-bE.addEventListener('pointerdown', e => { e.preventDefault(); interactHeld = true; });
-['pointerup','pointerleave','pointercancel'].forEach(ev => bE.addEventListener(ev, () => { interactHeld = false; }));
-$('bQ').addEventListener('click', () => cleanse());
+// The prompt can be pressed too (touch). It is rebuilt while E is held, so the release is caught on the window.
+let eByPointer = false;
+$('interact').addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  e.preventDefault();
+  if (b.dataset.act==='e'){ interactHeld = true; eByPointer = true; }
+  if (b.dataset.act==='q' && you && you.key==='relic' && !paused) cleanse();
+});
+['pointerup','pointercancel'].forEach(ev => addEventListener(ev, () => { if (eByPointer){ interactHeld = false; eByPointer = false; } }));
 function togglePause(){ if (S.result || S.phase==='idle') return; paused = !paused; $('bPause').textContent = paused ? 'Resume' : 'Pause'; }
 $('bPause').onclick = togglePause;
 $('bSpeed').onclick = () => { speed = speed===1 ? .5 : 1; $('bSpeed').textContent = `Speed ${speed===1 ? '1' : '½'}×`; };
@@ -1053,6 +1093,8 @@ async function initEngine(){
 
   // ---------- Guardians: shaped rigs with walk and aim ----------
   const tagsEl = $('tags');
+  const objMark = document.createElement('div'); objMark.className = 'omark'; objMark.style.display = 'none'; tagsEl.appendChild(objMark);
+  let objText = '';
   function makeGuardian(p){
     const col = new THREE.Color(p.color);
     const armor = new THREE.MeshStandardMaterial({color:col.clone().lerp(new THREE.Color(0x9aa3ad), .5), metalness:.7, roughness:.4, normalMap:hammer, normalScale:new THREE.Vector2(.18,.18), envMapIntensity:1.1});
@@ -1401,6 +1443,14 @@ async function initEngine(){
     });
     for (const t of spreadTags(tagItems)){ const el = G[t.i].tag; el.style.left = `${t.x}px`; el.style.top = `${t.y}px`; }
     youBeam.visible = !!(you && !watch);
+    const ot = objectiveTarget();
+    if (ot){
+      proj.copy(V(ot.x, ot.y, ot.h)).project(camera);
+      objMark.style.display = proj.z > 1 ? 'none' : 'flex';
+      objMark.style.left = `${(proj.x+1)/2*W2}px`; objMark.style.top = `${(1-proj.y)/2*H2}px`;
+      if (objText !== ot.label){ objText = ot.label; objMark.innerHTML = `<b>${ot.label}</b><i></i>`; }
+      objMark.style.setProperty('--c', ot.color);
+    } else objMark.style.display = 'none';
     if (youBeam.visible){ youBeam.position.copy(V(you.x, you.y, 15)); youBeam.material.opacity = .12 + Math.sin(T*3)*.05; }
     const yg = you && !watch ? G[S.players.indexOf(you)] : null;
     youMark.visible = youPulse.visible = !!(yg && yg.root.visible);
@@ -1453,7 +1503,7 @@ async function initEngine(){
 // boot
 // =====================================================================
 // Tests set globalThis.__RAID_CLINIC_TEST__ to drive the simulation headless (see tests/).
-if (globalThis.__RAID_CLINIC_TEST__){ newState(); globalThis.__RAID_CLINIC_TEST__({start, update, state:() => S, you:() => you, spreadTags}); return; }
+if (globalThis.__RAID_CLINIC_TEST__){ newState(); globalThis.__RAID_CLINIC_TEST__({start, update, state:() => S, you:() => you, spreadTags, interactPrompt, objectiveTarget, hold:v => { interactHeld = v; }}); return; }
 newState();
 showOverlay('start');
 initEngine().catch(err => { console.error(err); $('game').insertAdjacentHTML('beforeend','<div class="nogl">The 3D engine couldn’t start. This trainer needs WebGL and a connection to load its libraries.</div>'); });
@@ -1463,6 +1513,7 @@ function frame(){
   const raw = Math.min(.05, (now-last)/1000), dt = raw*speed; last = now;
   if (!paused && !S.result && S.phase!=='idle') update(dt);
   render(now, raw);
+  const fg = ipLive && $('interact').querySelector('.fg'); if (fg) fg.style.strokeDashoffset = 131.9 * (1 - Math.max(0, Math.min(1, ipLive.prog)));
   hudT += raw; if (hudT > .08){ hudT = 0; hud(); }
   requestAnimationFrame(frame);
 }
