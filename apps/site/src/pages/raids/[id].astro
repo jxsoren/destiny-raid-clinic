@@ -2,7 +2,8 @@
 // Minimal raid page so the Director has somewhere to go. Plan 4 replaces it with the
 // space-scene raid page (spec §5.2).
 import { join } from 'node:path';
-import { Divider, ItemHeader, PerkNode, PromptBar } from '@raid-clinic/ui';
+import { Divider, ItemHeader, PerkNode } from '@raid-clinic/ui';
+import { BackPrompt } from '../../components/BackPrompt';
 import trainers from '../../data/trainers.json';
 import Base from '../../layouts/Base.astro';
 import { loadRaids, type RaidSummary } from '../../lib/raids';
@@ -38,16 +39,9 @@ const { raid } = Astro.props as { raid: RaidSummary };
       )
     }
     <a class="raid__back" href="/">← Back to raids</a>
-    <PromptBar client:load variant="floating" prompts={[{ key: 'Esc', label: 'Back to raids' }]} />
+    <BackPrompt client:load />
   </main>
 </Base>
-
-<script>
-  // Esc returns to the Director (the PromptBar's prompt is display-only on this page).
-  window.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') window.location.assign('/');
-  });
-</script>
 
 <style>
   .raid {
