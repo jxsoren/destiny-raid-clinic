@@ -44,8 +44,8 @@ const dirs = (path: string) =>
 
 function guideStatus(path: string): string {
   try {
-    const front = readFileSync(path, 'utf8').match(/^---\n([\s\S]*?)\n---/);
-    return front?.[1].match(/^status:\s*"?([\w-]+)"?/m)?.[1] ?? 'draft';
+    const front = readFileSync(path, 'utf8').match(/^﻿?---\r?\n([\s\S]*?)\r?\n---/);
+    return front?.[1].match(/^status:\s*['"]?([\w-]+)['"]?/m)?.[1] ?? 'draft';
   } catch {
     return 'draft';
   }

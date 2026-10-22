@@ -1,5 +1,9 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import trainers from '../src/data/trainers.json';
 import {
   featuredRaid,
   loadRaids,
@@ -67,5 +71,37 @@ describe('loadRaids', () => {
     expect(d.raids[0].search).toContain('alpha raid');
     expect(d.raids[0].search).toContain('venus');
     expect(d.raids[0].search).toContain('the first');
+  });
+});
+
+describe('guide frontmatter', () => {
+  const guideWith = (text: string) => {
+    const dir = mkdtempSync(join(tmpdir(), 'raids-'));
+    const enc = join(dir, 'r', 'encounters', '01-e');
+    mkdirSync(enc, { recursive: true });
+    writeFileSync(join(dir, 'r', 'raid.json'), JSON.stringify({ id: 'r', name: 'R', planet: {} }));
+    writeFileSync(join(enc, 'encounter.json'), JSON.stringify({ id: 'e', name: 'E', order: 1 }));
+    writeFileSync(join(enc, 'guide.mdoc'), text);
+    return loadRaids(dir, [])[0].encounters[0].guide;
+  };
+
+  it('tolerates a BOM, CRLF line endings and single or double quotes', () => {
+    expect(guideWith('---\nstatus: reviewed\n---\nBody')).toBe(true);
+    expect(guideWith('\uFEFF---\r\nstatus: "reviewed"\r\n---\r\nBody')).toBe(true);
+    expect(guideWith("---\r\nstatus: 'reviewed'\r\n---\r\n")).toBe(true);
+    expect(guideWith('---\r\nstatus: draft\r\n---\r\n')).toBe(false);
+    expect(guideWith('no frontmatter')).toBe(false);
+  });
+});
+
+describe('real content', () => {
+  it('has an existing encounter for every trainer entry', () => {
+    const real = loadRaids(
+      fileURLToPath(new URL('../../../content/raids', import.meta.url)),
+      trainers,
+    );
+    const known = new Set(real.flatMap((r) => r.encounters.map((e) => `${r.id}/${e.id}`)));
+    expect(trainers.length).toBeGreaterThan(0);
+    for (const entry of trainers) expect(known.has(entry), entry).toBe(true);
   });
 });
