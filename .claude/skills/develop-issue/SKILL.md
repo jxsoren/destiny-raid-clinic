@@ -159,6 +159,50 @@ git -C tmp/worktrees/<branch-slug> rm ISSUE_ANALYSIS.md
 git -C tmp/worktrees/<branch-slug> commit -m "#<number>: Remove issue analysis after implementation"
 ```
 
+## Step 8.5 — UI Fix Preview Comment
+
+Check whether the issue touched UI: any changed file under a frontend path (e.g. components, views, pages, styles) or the `ISSUE_ANALYSIS.md` Affected Areas mentioning UI/frontend. If not a UI fix, skip to Step 9.
+
+If it is a UI fix, first classify it:
+
+- **Static UI fix** (layout, copy, color, spacing, a single element's appearance) → capture **screenshots**.
+- **Motion/rendering fix** (animation, camera/isometric rotation, canvas/WebGL rendering, transitions, drag interactions, anything where the bug or fix is only visible over time) → capture a **screen recording**.
+
+### 8.5a — Static UI fix: screenshots
+
+1. Use the `run` skill (or the project's `start-dev` skill) to launch the app in the worktree and navigate to the affected screen(s).
+2. Capture a screenshot of the changed UI showing the fix in effect (chrome-devtools-mcp `take_screenshot`). Capture a "before" screenshot too if feasible (e.g. base branch in a scratch checkout) — skip the before-shot if impractical and just post the after-shot with a text description.
+
+### 8.5b — Motion/rendering fix: Playwright recording
+
+1. Check for Playwright in the worktree: `npx --no-install playwright --version`. If missing, install it scoped to the worktree (`npm install -D playwright && npx playwright install chromium --with-deps`) — do not add it as a permanent dependency unless the user asks; it's a one-off tool for this capture.
+2. Write a small throwaway script (in the scratchpad, not committed) that:
+   - Launches Chromium via Playwright with `recordVideo: { dir: <scratch-dir> }`.
+   - Navigates to the affected screen and drives the interaction that shows the change (e.g. triggers the rotation/animation).
+   - Closes the context so the video file flushes to disk.
+3. Repeat against the base branch (checked out in a scratch worktree) for a "before" clip if practical; otherwise just capture "after" and describe the prior behavior in words.
+4. Convert the recorded `.webm` to a short GIF with `ffmpeg` **only if GIF is specifically wanted**; otherwise prefer posting the `.webm`/`.mp4` directly — GitHub renders both inline, video compresses better, and it skips a lossy conversion step. Keep clips short (a few seconds, trimmed to the relevant motion).
+5. Delete the scratch worktree/script when done; keep only the final video file.
+
+### 8.5c — Post it everywhere it's useful
+
+`gh` can't attach files to the PR body or comments directly, so the file must already be reachable (e.g. uploaded via a `gh pr comment`/`gh api` asset upload flow, or dragged into the GitHub UI if doing this interactively). Once you have an embeddable URL or asset reference for the screenshot(s)/video:
+
+1. Post a Draft PR comment showcasing the change:
+   ```bash
+   gh pr comment <branch-name> --body-file <comment-file>
+   ```
+   Comment body: a short description of what changed, plus the embedded screenshot(s) or video.
+2. **Also update the PR description itself** so the preview is visible without scrolling to comments:
+   ```bash
+   gh pr edit <branch-name> --body-file <updated-body-file>
+   ```
+   Append a `## Preview` section to the existing PR body (read current body with `gh pr view <branch-name> --json body` first, don't clobber it) with the same media embedded.
+
+If media can't be captured or embedded (no dev server, no image/asset hosting available), skip 8.5b/8.5c and note in the final report that no preview was posted.
+
+If the dev server can't be started or the screenshot can't be captured, skip this step and note in the final report that a UI preview comment was not posted.
+
 ## Step 9 — Report
 
 ```bash
