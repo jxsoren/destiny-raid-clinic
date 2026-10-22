@@ -118,7 +118,7 @@ export function Director(props: {
   };
 
   const prompts = (): Prompt[] => [
-    { key: 'F', keys: ['enter'], label: 'Select', onPress: () => open(selected()) },
+    { key: 'F', keys: ['enter'], label: 'Select', onPress: () => open(hovered() ?? selected()) },
     { key: '/', label: 'Search', onPress: openSearch },
     { key: 'Esc', label: menu() || searching() ? 'Close' : 'Menu', onPress: onEscape },
   ];

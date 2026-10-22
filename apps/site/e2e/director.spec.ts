@@ -5,6 +5,8 @@ const SCENE = '.director .rc-space';
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await expect(page.locator(`${SCENE} .rc-planet`)).toHaveCount(14);
+  // The tooltip only renders once the island has hydrated, so keys sent next are not lost.
+  await expect(page.getByRole('tooltip')).toBeVisible();
 });
 
 test('shows every raid, with the featured playable raid selected and described', async ({
@@ -34,6 +36,20 @@ test('F opens the selected raid', async ({ page }) => {
   await page.keyboard.press('f');
   await expect(page).toHaveURL(/\/raids\/vault-of-glass\/$/);
   await expect(page.getByText("Atheon, Time's Conflux")).toBeVisible();
+});
+
+test('Enter on a focused planet button acts on that planet, not the selected one', async ({
+  page,
+}) => {
+  const kingsFall = page.getByRole('button', { name: /^King's Fall/ });
+  await kingsFall.focus();
+  // Native activation selects the focused planet (and never opens Vault of Glass)...
+  await page.keyboard.press('Enter');
+  await expect(kingsFall).toHaveAttribute('aria-current', 'true');
+  await expect(page).toHaveURL('/');
+  // ...and Enter on the already selected planet opens it.
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/raids\/kings-fall\/$/);
 });
 
 test('search filters planets and Enter opens the first match', async ({ page }) => {
