@@ -76,7 +76,9 @@ export function createStars(field: StarField, flare: boolean): StarLayer {
           .mul(0.5),
       )
     : float(1).sub(smoothstep(0.2, 1, r));
-  material.colorNode = clamp(flare ? tint : tint.mul(twinkle), 0, 1);
+  // Small stars glow dimmer than large ones so the field reads as depth, not an even white dust.
+  const faint = smoothstep(0.8, 2.6, size).mul(0.6).add(0.4);
+  material.colorNode = clamp(flare ? tint : tint.mul(twinkle).mul(faint), 0, 1);
   material.opacityNode = clamp(shape, 0, 1);
 
   const sprite = new Sprite(material);

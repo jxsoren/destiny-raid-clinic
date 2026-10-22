@@ -28,4 +28,4 @@ export const SUN_DIRECTION: readonly [number, number, number] = [-0.5513, 0.6515
 /** Cloud white, the pale-planet base and the lush ocean shift. */
 export const CLOUD_WHITE: readonly [number, number, number] = [0.95, 0.95, 0.96];
 export const PALE_BASE: readonly [number, number, number] = [0.94, 0.93, 0.96];
-export const OCEAN_SHIFT: readonly [number, number, number] = [0.6, 0.8, 1.2];
+export const OCEAN_SHIFT: readonly [number, number, number] = [0.45, 0.75, 1.5];

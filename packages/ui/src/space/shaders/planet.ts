@@ -61,13 +61,16 @@ const GLOW_RADIUS = 1.7;
 const drift = (time: F, rate: number) => vec3(time.mul(rate), 0, 0);
 
 function lush(p: V3, tint: V3, time: F, octaves: number, light: number): V3 {
-  const land = smoothstep(0.5, 0.56, fbm(p.mul(1.7), octaves));
-  const ocean = tint.mul(0.3).mul(vec3(...OCEAN_SHIFT));
-  const ground = tint.mul(fbm(p.mul(5), octaves).mul(0.3).add(0.75));
+  // Warped coastlines: plain fbm with a sharp threshold shows Perlin's grid as blocky "camo" edges.
+  const land = smoothstep(0.5, 0.55, fbm(warp(p.mul(1.4), 0.7, 2), octaves));
+  const ocean = tint.mul(0.32).mul(vec3(...OCEAN_SHIFT));
+  const ground = tint.mul(fbm(p.mul(5), octaves).mul(0.35).add(0.7));
   const surface = mix(ocean, ground, land).mul(light);
-  const clouds = smoothstep(0.55, 0.75, fbm(p.mul(2.6).add(drift(time, 0.012)), octaves)).mul(
-    light > 0.9 ? 0.75 : 0.4,
-  );
+  const clouds = smoothstep(
+    0.52,
+    0.74,
+    fbm(warp(p.mul(2.2).add(drift(time, 0.012)), 0.9, 2), octaves),
+  ).mul(light > 0.9 ? 0.7 : 0.4);
   return mix(surface, vec3(...CLOUD_WHITE), clouds);
 }
 
@@ -87,8 +90,8 @@ export const ALBEDO: Record<Surface, Albedo> = {
   // White with dark cracks
   ice: (p, tint, _time, octaves) => {
     const base = mix(tint, vec3(1, 1, 1), 0.55).mul(fbm(p.mul(2), octaves).mul(0.15).add(0.88));
-    const crack = smoothstep(0.93, 0.985, ridged(p.mul(3.2), 4));
-    return mix(base, base.mul(0.22), crack);
+    const crack = smoothstep(0.92, 0.98, ridged(warp(p.mul(3.4), 0.25, 2), 3));
+    return mix(base, base.mul(0.3), crack);
   },
   // Grey with mare and craters
   moon: (p, tint, _time, octaves) => {
@@ -172,7 +175,7 @@ export function createPlanet(
   const d = length(positionLocal.xy);
   glowMaterial.colorNode = clamp(atmo, 0, 1);
   glowMaterial.opacityNode = pow(float(1).sub(smoothstep(1, GLOW_RADIUS, d)), 2)
-    .mul(0.32)
+    .mul(0.24)
     .mul(float(1).sub(uDim.mul(0.6)));
   const glow = new Mesh(new CircleGeometry(GLOW_RADIUS, 96), glowMaterial);
   glow.position.z = -1.3;

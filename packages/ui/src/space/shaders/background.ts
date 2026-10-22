@@ -29,10 +29,10 @@ export function createBackground(seed: number, octaves: number): Background {
     rgb(hex)
       .mul(smoothstep(0.45, 0.85, fbm(vec3(p.mul(scale).add(shift), z), octaves)))
       .mul(gain);
-  const nebula = wash(NEBULA.teal, 0, 1.3, 0.22)
-    .add(wash(NEBULA.violet, 3.1, 1.1, 0.2))
-    .add(wash(NEBULA.amber, 7.4, 1.6, 0.12))
-    .add(wash(NEBULA.blue, 11.9, 0.9, 0.18));
+  const nebula = wash(NEBULA.teal, 0, 1.3, 0.15)
+    .add(wash(NEBULA.violet, 3.1, 1.1, 0.15))
+    .add(wash(NEBULA.amber, 7.4, 1.6, 0.1))
+    .add(wash(NEBULA.blue, 11.9, 0.9, 0.13));
   const dust = fbm(vec3(p.mul(4), z.add(5)), octaves)
     .mul(0.35)
     .add(0.65);
@@ -40,12 +40,12 @@ export function createBackground(seed: number, octaves: number): Background {
   const dx = abs(st.x.sub(0.5)).mul(uAspect);
   const fromTop = float(1).sub(st.y);
   const beam = exp(dx.mul(dx).mul(-28))
-    .mul(exp(fromTop.mul(-2.2)))
-    .mul(0.16);
-  const topGlow = exp(length(vec2(dx, fromTop)).mul(-3.5)).mul(0.12);
+    .mul(exp(fromTop.mul(-2.6)))
+    .mul(0.1);
+  const topGlow = exp(length(vec2(dx, fromTop)).mul(-4)).mul(0.07);
 
   const edge = length(st.sub(0.5).mul(vec2(1.1, 1.3)));
-  const vignette = float(1).sub(smoothstep(0.35, 0.85, edge).mul(0.6));
+  const vignette = float(1).sub(smoothstep(0.3, 0.85, edge).mul(0.7));
 
   const material = new MeshBasicNodeMaterial({ depthWrite: false, depthTest: false });
   material.colorNode = clamp(
