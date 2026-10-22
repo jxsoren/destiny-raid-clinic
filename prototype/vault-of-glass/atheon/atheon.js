@@ -566,25 +566,6 @@ $('bPause').onclick = togglePause;
 $('bSpeed').onclick = () => { speed = speed===1 ? .5 : 1; $('bSpeed').textContent = `Speed ${speed===1 ? '1' : '½'}×`; };
 $('bRoles').onclick = () => { paused = true; showOverlay('start'); };
 
-// Player tag declutter (screen px). Items are {x, y, w, h, pin} with (x, y) the tag's bottom-center anchor.
-// Pinned tags (yours) stay put; the rest keep their input order and stack upward past anything they
-// overlap, so nearby tags never cover each other and don't swap places frame to frame.
-// Mutates each item's .y in place AND returns the (same) items array — callers may use either.
-// The retry bound (placed.length + 1 attempts) is enough to settle a fireteam-sized set (≤6 tags);
-// it is not a general convergence guarantee for arbitrarily large or pathological layouts.
-function spreadTags(items, gap = 2){
-  const placed = [];
-  for (const t of [...items].sort((a, b) => (b.pin|0) - (a.pin|0))){
-    for (let attempt = 0; attempt <= placed.length; attempt++){
-      const hit = placed.find(p => Math.abs(t.x - p.x) < (t.w + p.w)/2 + gap && t.y > p.y - p.h - gap && t.y - t.h - gap < p.y);
-      if (!hit) break;
-      t.y = hit.y - hit.h - gap;
-    }
-    placed.push(t);
-  }
-  return items;
-}
-
 // =====================================================================
 // AUDIO (Web Audio, all synthesized, no files)
 // =====================================================================
@@ -1351,7 +1332,6 @@ async function initEngine(){
     if (dome.visible){ dome.position.copy(V(S.players[0].x, S.players[0].y)); domeMat.uniforms.uI.value = .7 + (S.cleanCd > 1.1 ? 1.2 : 0); }
 
     // Guardians
-    const tagItems = [];
     S.players.forEach((p,i) => {
       const g = G[i];
       if (g.lx === null || dist({x:g.lx, y:g.ly}, p) > 60){ g.lx = p.x; g.ly = p.y; }
@@ -1386,17 +1366,12 @@ async function initEngine(){
       g.root.visible = !(p.loc==='room' && !active && S.phase!=='teleport');
       proj.copy(g.root.position); proj.y += 4.2; proj.project(camera);
       const hidden = you && !watch && S.phase==='away' && p.loc==='room' && you.loc==='vault';
-      const show = !(proj.z > 1 || hidden);
-      g.tag.style.display = show ? 'flex' : 'none';
+      g.tag.style.display = proj.z > 1 || hidden ? 'none' : 'flex';
+      g.tag.style.left = `${(proj.x+1)/2*W2}px`; g.tag.style.top = `${(1-proj.y)/2*H2}px`;
       const vm = p.loc==='room' ? `<span style="display:inline-block;width:28px;height:3px;background:rgba(255,255,255,.2);position:relative;margin-left:4px"><span style="position:absolute;inset:0 auto 0 0;width:${Math.round(p.meter*100)}%;background:${p.meter>.7?'#ff6a55':'#9b7cff'}"></span></span>` : '';
-      const cls = 'tag' + (p.you ? ' you' : ''); if (g.tag.className !== cls){ g.tag.className = cls; g.tag._sw = 0; }
-      const html = `<i style="background:${p.color}"></i>${p.you ? 'YOU' : p.tag}${vm}`; if (g.tag._h !== html){ g.tag.innerHTML = html; g.tag._h = html; g.tag._sw = 0; }
-      if (!show) return;
-      // measure only when the content or the game width (tag font follows it) changes
-      if (g.tag._sw !== W2){ g.tag._w = g.tag.offsetWidth; g.tag._ht = g.tag.offsetHeight; g.tag._sw = W2; }
-      tagItems.push({i, x:(proj.x+1)/2*W2, y:(1-proj.y)/2*H2, w:g.tag._w, h:g.tag._ht, pin:p.you});
+      const cls = 'tag' + (p.you ? ' you' : ''); if (g.tag.className !== cls) g.tag.className = cls;
+      const html = `<i style="background:${p.color}"></i>${p.you ? 'YOU' : p.tag}${vm}`; if (g.tag._h !== html){ g.tag.innerHTML = html; g.tag._h = html; }
     });
-    for (const t of spreadTags(tagItems)){ const el = G[t.i].tag; el.style.left = `${t.x}px`; el.style.top = `${t.y}px`; }
     youBeam.visible = !!(you && !watch);
     if (youBeam.visible){ youBeam.position.copy(V(you.x, you.y, 15)); youBeam.material.opacity = .12 + Math.sin(T*3)*.05; }
     tapMark.visible = !!tap; if (tap){ tapMark.position.copy(V(tap.x, tap.y, .1)); tapMark.scale.setScalar(1 + Math.sin(T*8)*.1); }
@@ -1443,7 +1418,7 @@ async function initEngine(){
 // boot
 // =====================================================================
 // Tests set globalThis.__RAID_CLINIC_TEST__ to drive the simulation headless (see tests/).
-if (globalThis.__RAID_CLINIC_TEST__){ newState(); globalThis.__RAID_CLINIC_TEST__({start, update, state:() => S, you:() => you, spreadTags}); return; }
+if (globalThis.__RAID_CLINIC_TEST__){ newState(); globalThis.__RAID_CLINIC_TEST__({start, update, state:() => S, you:() => you}); return; }
 newState();
 showOverlay('start');
 initEngine().catch(err => { console.error(err); $('game').insertAdjacentHTML('beforeend','<div class="nogl">The 3D engine couldn’t start. This trainer needs WebGL and a connection to load its libraries.</div>'); });
