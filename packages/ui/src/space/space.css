@@ -28,6 +28,9 @@
   width: 0;
   height: 0;
 }
+.rc-planet.is-pending {
+  visibility: hidden;
+}
 .rc-planet__hit {
   position: absolute;
   left: 0;

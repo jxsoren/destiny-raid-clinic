@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import { createSignal } from 'solid-js';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const create = vi.fn();
 vi.mock('../src/space/SpaceRenderer', () => ({
@@ -126,5 +126,95 @@ describe('SpaceScene', () => {
     expect(onHover).toHaveBeenLastCalledWith(null);
     expect(document.querySelector('[data-planet="vog"] .rc-planet__brackets')).not.toBeNull();
     expect(button).toHaveAttribute('aria-current', 'true');
+  });
+  it('keeps the same row, focus and hover when the planets array is replaced', () => {
+    const [planets, setPlanets] = createSignal<ScenePlanet[]>([VOG]);
+    render(() => <SpaceScene planets={planets()} fallback />);
+    const button = screen.getByRole('button', { name: /Vault of Glass/ });
+    button.focus();
+    expect(document.activeElement).toBe(button);
+    setPlanets(planets().map((p) => ({ ...p, dimmed: true })));
+    const after = screen.getByRole('button', { name: /Vault of Glass/ });
+    expect(after).toBe(button);
+    expect(document.activeElement).toBe(button);
+    expect(after.closest('.rc-planet')).toHaveClass('is-dimmed');
+  });
+
+  it('updates name, label and status reactively', () => {
+    const [planets, setPlanets] = createSignal<ScenePlanet[]>([VOG]);
+    render(() => <SpaceScene planets={planets()} fallback />);
+    setPlanets([{ ...VOG, name: 'Renamed', status: [] }]);
+    expect(screen.getByRole('button', { name: 'Renamed, Venus' })).toBeInTheDocument();
+    expect(screen.getByText('Renamed')).toBeInTheDocument();
+  });
+
+  it('clears hover when a hovered planet is removed', () => {
+    const onHover = vi.fn();
+    const [planets, setPlanets] = createSignal<ScenePlanet[]>([VOG]);
+    render(() => <SpaceScene planets={planets()} fallback onHover={onHover} />);
+    fireEvent.pointerEnter(screen.getByRole('button', { name: /Vault of Glass/ }));
+    onHover.mockClear();
+    setPlanets([]);
+    expect(onHover).toHaveBeenCalledWith(null);
+  });
+
+  it('marks a live planet without a screen as pending until its frame arrives', async () => {
+    const { r, emit } = fakeRenderer();
+    create.mockResolvedValue(r);
+    render(() => <SpaceScene planets={[VOG]} label="Raids" />);
+    const group = screen.getByRole('group', { name: 'Raids' });
+    await waitFor(() => expect(group).toHaveClass('rc-space--live'));
+    const planet = group.querySelector<HTMLElement>('[data-planet="vog"]');
+    expect(planet).toHaveClass('is-pending');
+    emit([{ id: 'vog', x: 1, y: 2, r: 3, labelX: 0, labelY: 0 }]);
+    await waitFor(() => expect(planet).not.toHaveClass('is-pending'));
+  });
+
+  describe('media queries', () => {
+    type Listener = (event: { matches: boolean }) => void;
+    let lists: Map<string, { matches: boolean; listeners: Set<Listener> }[]>;
+    beforeEach(() => {
+      lists = new Map();
+      vi.stubGlobal('matchMedia', (query: string) => {
+        const entry = { matches: false, listeners: new Set<Listener>() };
+        lists.set(query, [...(lists.get(query) ?? []), entry]);
+        return {
+          get matches() {
+            return entry.matches;
+          },
+          addEventListener: (_: string, cb: Listener) => entry.listeners.add(cb),
+          removeEventListener: (_: string, cb: Listener) => entry.listeners.delete(cb),
+        };
+      });
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('applies a motion change that happened while the renderer was pending', async () => {
+      const { r } = fakeRenderer();
+      let resolve: (value: unknown) => void = () => {};
+      create.mockReturnValue(new Promise((res) => (resolve = res)));
+      render(() => <SpaceScene planets={[VOG]} label="Raids" />);
+      const entry = lists.get('(prefers-reduced-motion: reduce)')?.[0];
+      for (const cb of entry?.listeners ?? []) cb({ matches: true });
+      resolve(r);
+      await waitFor(() => expect(r.start).toHaveBeenCalled());
+      expect(r.setMotion).toHaveBeenCalledWith(false);
+    });
+
+    it('resizes when the device pixel ratio changes', async () => {
+      const { r } = fakeRenderer();
+      create.mockResolvedValue(r);
+      render(() => <SpaceScene planets={[VOG]} label="Raids" />);
+      await waitFor(() => expect(r.start).toHaveBeenCalled());
+      const query = `(resolution: ${devicePixelRatio}dppx)`;
+      const entry = lists.get(query)?.[0];
+      expect(entry).toBeDefined();
+      const before = r.resize.mock.calls.length;
+      vi.stubGlobal('devicePixelRatio', 2);
+      for (const cb of entry?.listeners ?? []) cb({ matches: false });
+      expect(r.resize.mock.calls.length).toBe(before + 1);
+      expect(r.resize).toHaveBeenLastCalledWith(expect.any(Number), expect.any(Number), 2);
+      expect(lists.get('(resolution: 2dppx)')).toBeDefined();
+    });
   });
 });

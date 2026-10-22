@@ -91,6 +91,7 @@ Every space screen (the Director, raid pages) uses `SpaceScene` from `@raid-clin
 - **Planets** come from each raid's `planet` block in `raid.json`: surface, tint, atmosphere, ring, size, position, location and tagline. Pass them as `ScenePlanet` objects with `status`, plus `featured` (the newest playable raid) and `dimmed` (nothing playable).
 - **Overlay:** labels, status icons, brackets and hit areas are DOM, positioned from the renderer. Use `onLayout` for tooltips and keyboard navigation, and `onHover` and `onSelect` for interaction. Put the title block, tooltip and prompts in `children`.
 - **Camera:** `view` (`{ cx, cy, zoom }`) frames the camera. The first value applies instantly; changes animate over about 600ms (cut with reduced motion).
+- **Height:** the scene fills its parent (`height: 100%` with `container-type: size`), so the parent must have an explicit height or the scene collapses to 0. The CSS fallback always shows the home view (it ignores `view`).
 - **Colors:** shader colors live in `packages/ui/src/space/shaders/` (`palette.ts`). It is the only place outside `tokens.css` where color literals are allowed.
 - **Motion:** planets spin slowly, clouds drift, stars twinkle, and the pointer adds up to 8px of parallax. `prefers-reduced-motion` turns all of it off.
 - **Performance:** quality drops automatically on phones, small screens and weak CPUs (fewer stars, cheaper noise, no parallax). Check renderer changes on a real GPU before merging.

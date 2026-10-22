@@ -19,6 +19,14 @@ test('the live space scene draws frames without console errors', async ({ page }
       timeout: 30_000,
     })
     .toBeGreaterThanOrEqual(30);
+  await expect
+    .poll(() =>
+      scene
+        .locator('.rc-planet')
+        .first()
+        .evaluate((el) => (el as HTMLElement).style.left),
+    )
+    .toMatch(/px$/);
   expect(errors).toEqual([]);
 });
 

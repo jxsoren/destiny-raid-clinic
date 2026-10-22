@@ -1,6 +1,15 @@
 // The space screen: a lazily loaded three.js renderer with DOM planets on top (labels, status icons,
 // selection brackets and buttons). Without 3D, the same DOM draws CSS planets in the same places.
-import { createEffect, createSignal, For, type JSX, onCleanup, onMount, Show } from 'solid-js';
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  type JSX,
+  onCleanup,
+  onMount,
+  Show,
+} from 'solid-js';
 import { SelectionBrackets } from '../SelectionBrackets';
 import { AVAILABILITY_LABEL, StatusIcon } from '../StatusIcon';
 import { labelClearance, worldRadius } from './layout';
@@ -32,7 +41,8 @@ type Mode = 'loading' | 'live' | 'fallback';
 const media = (query: string): MediaQueryList | null =>
   typeof matchMedia === 'function' ? matchMedia(query) : null;
 
-function planetName(p: ScenePlanet): string {
+function planetLabel(p: ScenePlanet | undefined): string {
+  if (!p) return '';
   const status = p.status.map((k) => AVAILABILITY_LABEL[k]).join(', ');
   return `${p.name}, ${p.planet.location}${status ? ` · ${status}` : ''}`;
 }
@@ -82,6 +92,7 @@ export function SpaceScene(props: SpaceSceneProps) {
           props.onLayout?.(list);
         });
         setRenderer(r);
+        r.setMotion(motion());
         setMode('live');
       })
       .catch((error: unknown) => {
@@ -102,10 +113,28 @@ export function SpaceScene(props: SpaceSceneProps) {
     resize();
     const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null;
     observer?.observe(root);
+    // ResizeObserver stays silent when only the DPR changes (e.g. moving to another monitor).
+    let dprQuery: MediaQueryList | null = null;
+    const onDpr = () => {
+      resize();
+      arm();
+    };
+    const disarm = () => dprQuery?.removeEventListener('change', onDpr);
+    const arm = () => {
+      disarm();
+      dprQuery = media(`(resolution: ${globalThis.devicePixelRatio || 1}dppx)`);
+      dprQuery?.addEventListener('change', onDpr);
+    };
+    arm();
     r.start();
-    onCleanup(() => observer?.disconnect());
+    onCleanup(() => {
+      observer?.disconnect();
+      disarm();
+    });
   });
   createEffect(() => renderer()?.setPlanets(props.planets));
+  const ids = createMemo(() => props.planets.map((p) => p.id));
+  const byId = createMemo(() => new Map(props.planets.map((p) => [p.id, p])));
   let firstView = true;
   createEffect(() => {
     const r = renderer();
@@ -140,43 +169,55 @@ export function SpaceScene(props: SpaceSceneProps) {
         {/* biome-ignore lint/a11y/noAriaHiddenOnFocusable: a canvas is not focusable; the DOM buttons carry the semantics */}
         <canvas ref={canvas} class="rc-space__canvas" aria-hidden="true" />
       </Show>
-      <For each={props.planets}>
-        {(p) => {
-          const live = () => (mode() === 'live' ? screens()[p.id] : undefined);
+      <For each={ids()}>
+        {(id) => {
+          const p = () => byId().get(id);
+          let engaged = false;
+          onCleanup(() => {
+            if (engaged) props.onHover?.(null);
+          });
+          const hover = (on: boolean) => {
+            engaged = on;
+            props.onHover?.(on ? id : null);
+          };
+          const live = () => (mode() === 'live' ? screens()[id] : undefined);
           const style = () => {
+            const planet = p();
+            if (!planet) return {};
             const base: JSX.CSSProperties = {
-              '--px': String(p.planet.position[0]),
-              '--py': String(p.planet.position[1]),
-              '--r': String(worldRadius(p.planet, p.featured)),
-              '--clear': String(labelClearance(p.planet.ring)),
-              '--tint': p.planet.tint,
-              '--atmo': p.planet.atmosphere,
+              '--px': String(planet.planet.position[0]),
+              '--py': String(planet.planet.position[1]),
+              '--r': String(worldRadius(planet.planet, planet.featured)),
+              '--clear': String(labelClearance(planet.planet.ring)),
+              '--tint': planet.planet.tint,
+              '--atmo': planet.planet.atmosphere,
             };
             const s = live();
             return s ? { ...base, left: `${s.x}px`, top: `${s.y}px`, '--d': `${s.r * 2}px` } : base;
           };
-          const selected = () => props.selected === p.id;
+          const selected = () => props.selected === id;
           return (
             <div
               class="rc-planet"
               classList={{
-                'is-dimmed': Boolean(p.dimmed),
+                'is-dimmed': Boolean(p()?.dimmed),
+                'is-pending': mode() === 'live' && !live(),
                 'is-selected': selected(),
-                'is-featured': Boolean(p.featured),
+                'is-featured': Boolean(p()?.featured),
               }}
               style={style()}
-              data-planet={p.id}
+              data-planet={id}
             >
               <button
                 type="button"
                 class="rc-planet__hit"
-                aria-label={planetName(p)}
+                aria-label={planetLabel(p())}
                 aria-current={selected() ? 'true' : undefined}
-                onClick={() => props.onSelect?.(p.id)}
-                onFocus={() => props.onHover?.(p.id)}
-                onBlur={() => props.onHover?.(null)}
-                onPointerEnter={() => props.onHover?.(p.id)}
-                onPointerLeave={() => props.onHover?.(null)}
+                onClick={() => props.onSelect?.(id)}
+                onFocus={() => hover(true)}
+                onBlur={() => hover(false)}
+                onPointerEnter={() => hover(true)}
+                onPointerLeave={() => hover(false)}
               >
                 <Show when={mode() !== 'live'}>
                   <span class="rc-planet__orb" />
@@ -188,10 +229,10 @@ export function SpaceScene(props: SpaceSceneProps) {
                 </span>
               </Show>
               <div class="rc-planet__label" aria-hidden="true">
-                <span class="t-planet">{p.name}</span>
-                <Show when={p.status.length > 0}>
+                <span class="t-planet">{p()?.name}</span>
+                <Show when={(p()?.status.length ?? 0) > 0}>
                   <span class="rc-planet__icons">
-                    <For each={p.status}>{(kind) => <StatusIcon kind={kind} />}</For>
+                    <For each={p()?.status}>{(kind) => <StatusIcon kind={kind} />}</For>
                   </span>
                 </Show>
               </div>
