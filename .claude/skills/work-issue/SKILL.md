@@ -51,6 +51,8 @@ Invoke `/develop-issue` on the branch `/analyze-issue` just created. Let it run 
 
 If `/develop-issue` pauses for a Review checkpoint or a clarification question, stop and wait like it normally would — `work-issue` does not skip or auto-answer those pauses.
 
+For UI issues, `/develop-issue` ends by recording a screenshot and clip, posting them on the PR and deleting the local copies (its Step 8.5). That step needs ffmpeg, Playwright's Chromium and a browser tool signed in to GitHub. When the issue is UI work, check those up front so the run doesn't stall at the end: `ffmpeg -version`, `pnpm --filter site exec playwright install chromium`, and the browser tool's tab context.
+
 ## Step 3 — Report
 
 Pass through `/develop-issue`'s final report as-is. No extra summary needed.
