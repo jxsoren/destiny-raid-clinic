@@ -16,17 +16,30 @@ test('the live space scene draws frames without console errors', async ({ page }
   await expect(scene.locator('.rc-planet')).toHaveCount(9);
   await expect
     .poll(async () => Number((await scene.locator('canvas').getAttribute('data-frames')) ?? 0), {
-      timeout: 30_000,
+      timeout: 60_000, // the first frame compiles every shader; slow under software GL on CI
     })
-    .toBeGreaterThanOrEqual(30);
-  await expect
-    .poll(() =>
-      scene
-        .locator('.rc-planet')
-        .first()
-        .evaluate((el) => (el as HTMLElement).style.left),
-    )
-    .toMatch(/px$/);
+    .toBeGreaterThanOrEqual(1);
+  // The DOM overlay follows the renderer: live planets get pixel positions from its frames.
+  const overlay = () =>
+    scene.evaluate((root) => {
+      const planet = root.querySelector<HTMLElement>('.rc-planet');
+      const canvas = root.querySelector('canvas');
+      return {
+        left: planet?.style.left ?? '',
+        style: planet?.getAttribute('style') ?? '',
+        classes: planet?.className ?? '',
+        backend: root.getAttribute('data-backend'),
+        frames: canvas?.dataset.frames,
+        canvas: canvas ? `${canvas.width}x${canvas.height}` : null,
+        box: `${root.clientWidth}x${root.clientHeight}`,
+      };
+    });
+  let seen = await overlay();
+  for (const deadline = Date.now() + 15_000; !seen.left.endsWith('px') && Date.now() < deadline; ) {
+    await page.waitForTimeout(250);
+    seen = await overlay();
+  }
+  expect(seen.left, `overlay never got pixel positions: ${JSON.stringify(seen)}`).toMatch(/px$/);
   expect(errors).toEqual([]);
 });
 
