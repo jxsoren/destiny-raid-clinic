@@ -16,6 +16,7 @@ You need:
 just setup        # install JS tooling
 just dev          # the site at http://localhost:4321 (styleguide at /styleguide)
 just check        # everything CI runs
+just e2e          # browser tests for the site; run `pnpm --filter site exec playwright install chromium` once first
 just              # list all tasks
 ```
 

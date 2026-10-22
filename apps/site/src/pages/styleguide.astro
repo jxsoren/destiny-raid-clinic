@@ -13,7 +13,12 @@ import {
   StatusIcon,
   Tooltip,
 } from '@raid-clinic/ui';
+import { type ScenePlanet, SpaceScene } from '@raid-clinic/ui/space';
+import '@raid-clinic/ui/space.css';
+import demoPlanets from '../data/demo-planets.json';
 import Base from '../layouts/Base.astro';
+
+const planets = demoPlanets as ScenePlanet[];
 
 const TOKENS = [
   'void', 'haze', 'panel', 'brass', 'glow', 'gold-hi', 'gold-lo', 'gold-edge', 'perk-blue', 'live', 'done',
@@ -115,6 +120,17 @@ const VOG_ARENA =
     </section>
 
     <section>
+      <h2 class="t-head">Space scene</h2>
+      <p class="t-type">One planet per surface type. Live renderer, then the no-3D fallback.</p>
+      <div class="sg-space" data-testid="space-live">
+        <SpaceScene client:only="solid-js" planets={planets} seed={7} label="Surface types" selected="demo-venus" />
+      </div>
+      <div class="sg-space" data-testid="space-fallback">
+        <SpaceScene client:load planets={planets} fallback label="Surface types, static" />
+      </div>
+    </section>
+
+    <section>
       <h2 class="t-head">Prompts</h2>
       <PromptBar variant="floating" touch={false} prompts={[{ key: 'F', label: 'Select' }, { key: '/', label: 'Search' }]} />
     </section>
@@ -199,5 +215,9 @@ const VOG_ARENA =
     position: absolute;
     left: 60px;
     top: 150px;
+  }
+  .sg-space {
+    height: 420px;
+    border: 1px solid var(--divider);
   }
 </style>

@@ -83,6 +83,20 @@ Shapes:
 - Circles are only for planets, perk nodes, round buttons and key glyphs.
 - Hover and focus show a 2px white frame. Planets use corner brackets.
 
+## Space scenes
+
+Every space screen (the Director, raid pages) uses `SpaceScene` from `@raid-clinic/ui/space`. Never draw planets, stars or nebula any other way.
+
+- **Import:** `import { SpaceScene } from '@raid-clinic/ui/space'` plus `import '@raid-clinic/ui/space.css'`. Render it with `client:only="solid-js"`. It loads three.js lazily and falls back to CSS planets in the same positions when WebGPU and WebGL2 are both unavailable.
+- **Planets** come from each raid's `planet` block in `raid.json`: surface, tint, atmosphere, ring, size, position, location and tagline. Pass them as `ScenePlanet` objects with `status`, plus `featured` (the newest playable raid) and `dimmed` (nothing playable).
+- **Overlay:** labels, status icons, brackets and hit areas are DOM, positioned from the renderer. Use `onLayout` for tooltips and keyboard navigation, and `onHover` and `onSelect` for interaction. Put the title block, tooltip and prompts in `children`.
+- **Camera:** `view` (`{ cx, cy, zoom }`) frames the camera. The first value applies instantly; changes animate over about 600ms (cut with reduced motion).
+- **Height:** the scene fills its parent (`height: 100%` with `container-type: size`), so the parent must have an explicit height or the scene collapses to 0. The CSS fallback always shows the home view (it ignores `view`).
+- **Colors:** shader colors live in `packages/ui/src/space/shaders/` (`palette.ts`). It is the only place outside `tokens.css` where color literals are allowed.
+- **Motion:** planets spin slowly, clouds drift, stars twinkle, and the pointer adds up to 8px of parallax. `prefers-reduced-motion` turns all of it off.
+- **Performance:** quality drops automatically on phones, small screens and weak CPUs (fewer stars, cheaper noise, no parallax). Check renderer changes on a real GPU before merging.
+- See it live: `/styleguide`, under "Space scene".
+
 ## Pages
 
 - **Home (Raids):**

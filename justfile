@@ -55,6 +55,10 @@ dev:
 build:
     pnpm --filter site build
 
+# Browser tests against the built site (first time: pnpm --filter site exec playwright install chromium)
+e2e: build
+    pnpm --filter site exec playwright test
+
 # Scaffold a raid:      just new-raid kings-fall "King's Fall" "Dreadnaught"
 new-raid id name location:
     {{raidlint}} new-raid {{id}} --name "{{name}}" --location "{{location}}"

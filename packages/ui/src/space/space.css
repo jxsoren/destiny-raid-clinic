@@ -1,0 +1,87 @@
+/* SpaceScene: the renderer canvas plus DOM planets (labels, hit areas, CSS fallback orbs).
+   Planet geometry mirrors layout.ts: at the home view a planet sits at (px·W, py·H) with radius r·H/2. */
+.rc-space {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--void);
+  container-type: size;
+  isolation: isolate;
+}
+.rc-space__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.rc-space--fallback {
+  background: radial-gradient(70% 45% at 50% 0%, var(--haze), transparent 70%), var(--void);
+}
+
+.rc-planet {
+  --d: calc(var(--r) * 100cqh);
+  position: absolute;
+  left: calc(var(--px) * 100%);
+  top: calc(var(--py) * 100%);
+  width: 0;
+  height: 0;
+}
+.rc-planet.is-pending {
+  visibility: hidden;
+}
+.rc-planet__hit {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--d);
+  height: var(--d);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+.rc-planet__orb {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, var(--orb-shine), transparent 48%),
+    radial-gradient(circle at 62% 64%, transparent 38%, var(--orb-shade) 80%), var(--tint);
+  box-shadow: 0 0 calc(var(--d) * 0.18) var(--atmo);
+}
+.rc-planet__brackets {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--d) * 1.3);
+  height: calc(var(--d) * 1.3);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+/* 10px matches LABEL_GAP in layout.ts */
+.rc-planet__label {
+  position: absolute;
+  left: calc(var(--d) / 2 * var(--clear) + 10px);
+  top: 0;
+  display: grid;
+  gap: 5px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.rc-planet__icons {
+  display: flex;
+  gap: 4px;
+}
+.rc-planet.is-featured .t-planet {
+  font-size: 13px;
+}
+.rc-planet.is-dimmed .rc-planet__orb {
+  filter: grayscale(0.6) brightness(0.55);
+}
+.rc-planet.is-dimmed .rc-planet__label {
+  opacity: 0.65;
+}

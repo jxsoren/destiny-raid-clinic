@@ -85,6 +85,13 @@ describe('SelectionBrackets', () => {
     expect(brackets.style.width).toBe('120px');
     expect(brackets).toHaveAttribute('aria-hidden', 'true');
   });
+
+  it('accepts a CSS length for size', () => {
+    const { container } = render(() => <SelectionBrackets size="100%" />);
+    const el = container.querySelector<HTMLElement>('.rc-brackets');
+    expect(el?.style.width).toBe('100%');
+    expect(el?.style.height).toBe('100%');
+  });
 });
 
 describe('Logo', () => {
