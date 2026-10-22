@@ -64,3 +64,20 @@ test('the Director loads without console errors', async ({ page }) => {
   await expect(page.getByRole('tooltip')).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("the tooltip stays off the selected planet's own label", async ({ page }) => {
+  await page.getByRole('button', { name: /^King's Fall/ }).click();
+  const label = page.locator('[data-planet="kings-fall"] .rc-planet__label');
+  await label.waitFor({ state: 'attached' });
+  const tip = page.getByRole('tooltip');
+  await expect(tip).toContainText("King's Fall");
+  const [t, l] = await Promise.all([tip.boundingBox(), label.boundingBox()]);
+  expect(t).not.toBeNull();
+  expect(l).not.toBeNull();
+  const intersects =
+    t!.x < l!.x + l!.width &&
+    l!.x < t!.x + t!.width &&
+    t!.y < l!.y + l!.height &&
+    l!.y < t!.y + t!.height;
+  expect(intersects).toBe(false);
+});

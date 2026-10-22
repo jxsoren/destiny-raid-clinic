@@ -78,12 +78,15 @@ export function Director(props: {
     const raid = id ? raids().get(id) : undefined;
     if (!s || !raid || size().w === 0) return null;
     const target: Rect = { x: s.x - s.r, y: s.y - s.r, w: s.r * 2, h: s.r * 2 };
-    const avoid: Rect[] = screens()
-      .filter((o) => o.id !== id)
-      .flatMap((o) => [
-        { x: o.x - o.r, y: o.y - o.r, w: o.r * 2, h: o.r * 2 },
-        { x: o.labelX, y: o.labelY - LABEL_H / 2, w: LABEL_W, h: LABEL_H },
-      ]);
+    const avoid: Rect[] = [
+      { x: s.labelX, y: s.labelY - LABEL_H / 2, w: LABEL_W, h: LABEL_H },
+      ...screens()
+        .filter((o) => o.id !== id)
+        .flatMap((o) => [
+          { x: o.x - o.r, y: o.y - o.r, w: o.r * 2, h: o.r * 2 },
+          { x: o.labelX, y: o.labelY - LABEL_H / 2, w: LABEL_W, h: LABEL_H },
+        ]),
+    ];
     return { raid, target, avoid };
   });
 
