@@ -26,7 +26,8 @@ h1 b{font-weight:700}
 .tags{position:absolute;inset:0;pointer-events:none}
 .tag{position:absolute;transform:translate(-50%,-100%);font:600 clamp(9px,.85cqw,12px) var(--ui);letter-spacing:.06em;white-space:nowrap;color:#fff;text-shadow:0 1px 2px #000;display:flex;align-items:center;gap:5px}
 .tag i{width:7px;height:7px;transform:rotate(45deg);display:inline-block}
-.tag.you{font-weight:700}
+.tag.you{font-weight:700;color:#0a0d11;text-shadow:none;background:var(--c);padding:2px 7px 2px 5px;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 12px var(--c)}
+.tag.you i{background:#0a0d11}
 .tag.boss{font-size:clamp(10px,1cqw,13px);letter-spacing:.14em;color:var(--boss)}
 
 .radar{left:2.2%;top:3%;width:10cqw;min-width:84px;aspect-ratio:2/1.15}
