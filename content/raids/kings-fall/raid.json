@@ -7,8 +7,8 @@
     "tint": "#c8b48a",
     "atmosphere": "#f0dcae",
     "ring": true,
-    "size": 1.05,
-    "position": [0.1, 0.2],
+    "size": 0.95,
+    "position": [0.12, 0.69],
     "location": "The Dreadnaught",
     "tagline": ""
   },

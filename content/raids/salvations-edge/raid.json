@@ -7,8 +7,8 @@
     "tint": "#d9d3e6",
     "atmosphere": "#efe6ff",
     "ring": false,
-    "size": 1,
-    "position": [0.6, 0.86],
+    "size": 0.9,
+    "position": [0.3, 0.85],
     "location": "The Pale Heart",
     "tagline": ""
   },

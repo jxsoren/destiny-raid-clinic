@@ -4,11 +4,11 @@
   "released": "2017-09-13",
   "planet": {
     "surface": "gas",
-    "tint": "#c9a45a",
-    "atmosphere": "#ffd98a",
+    "tint": "#b8683e",
+    "atmosphere": "#ffb48a",
     "ring": false,
-    "size": 1.1,
-    "position": [0.6, 0.4],
+    "size": 1,
+    "position": [0.67, 0.4],
     "location": "Nessus orbit",
     "tagline": ""
   },

@@ -7,8 +7,8 @@
     "tint": "#e0b47a",
     "atmosphere": "#ffd2a0",
     "ring": false,
-    "size": 0.95,
-    "position": [0.38, 0.88],
+    "size": 0.85,
+    "position": [0.66, 0.68],
     "location": "Kepler",
     "tagline": ""
   },

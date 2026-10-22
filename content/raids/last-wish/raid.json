@@ -7,8 +7,8 @@
     "tint": "#8a6fbd",
     "atmosphere": "#d9c7f2",
     "ring": false,
-    "size": 0.9,
-    "position": [0.34, 0.16],
+    "size": 0.85,
+    "position": [0.15, 0.14],
     "location": "The Dreaming City",
     "tagline": ""
   },

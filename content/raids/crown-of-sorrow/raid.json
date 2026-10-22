@@ -4,11 +4,11 @@
   "released": "2019-06-04",
   "planet": {
     "surface": "venus",
-    "tint": "#a8823c",
-    "atmosphere": "#e8c070",
+    "tint": "#8c6634",
+    "atmosphere": "#c3d87e",
     "ring": false,
-    "size": 0.9,
-    "position": [0.62, 0.64],
+    "size": 0.85,
+    "position": [0.49, 0.85],
     "location": "Nessus orbit",
     "tagline": ""
   },

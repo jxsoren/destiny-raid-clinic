@@ -7,8 +7,8 @@
     "tint": "#3e5a3c",
     "atmosphere": "#7fb38a",
     "ring": false,
-    "size": 0.9,
-    "position": [0.56, 0.18],
+    "size": 0.85,
+    "position": [0.65, 0.14],
     "location": "The Black Garden",
     "tagline": ""
   },

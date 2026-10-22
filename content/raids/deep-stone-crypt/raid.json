@@ -7,8 +7,8 @@
     "tint": "#cfe3ee",
     "atmosphere": "#bfe6ff",
     "ring": false,
-    "size": 1,
-    "position": [0.78, 0.16],
+    "size": 0.9,
+    "position": [0.79, 0.24],
     "location": "Europa",
     "tagline": ""
   },
