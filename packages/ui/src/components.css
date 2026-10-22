@@ -239,13 +239,17 @@
 
 /* Tooltip (Thorn style) */
 .rc-tip {
-  position: absolute;
+  position: fixed;
   z-index: 10;
   background: var(--tip-body);
   border-top: 2px solid var(--tip-edge);
   box-shadow: var(--tip-shadow);
   color: var(--ink);
   animation: rc-tip-in 120ms ease-out;
+}
+/* Opt-in: coordinates relative to the nearest positioned ancestor instead of the viewport. */
+.rc-tip--contained {
+  position: absolute;
 }
 @keyframes rc-tip-in {
   from {

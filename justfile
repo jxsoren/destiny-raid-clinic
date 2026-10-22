@@ -29,6 +29,8 @@ fmt-check:
 lint: lint-styles
     cargo clippy --workspace --all-targets -- -D warnings
     pnpm exec biome lint .
+    pnpm --filter @raid-clinic/ui exec tsc -p . --noEmit
+    pnpm --filter site check
 
 # Run all tests
 test:

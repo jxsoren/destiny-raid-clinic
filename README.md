@@ -9,7 +9,7 @@ Browser-based trainers and guides for Destiny 2 raid encounters. Pick a seat in 
 You need:
 
 - **Rust via [rustup](https://rustup.rs)**. It installs the exact toolchain pinned in `rust-toolchain.toml`, including the WebAssembly target. Homebrew's Rust works for most tasks, but it can't add the WebAssembly target later.
-- **Node 22+** and **pnpm**: `npm install -g pnpm@12.10.1` (or `brew install pnpm`), matching `packageManager` in `package.json`. Don't use `corepack enable`. The Corepack bundled with Node 23 can't run pnpm 12 (`Cannot find module …/bin/pnpm.cjs`).
+- **Node >=22.12** and **pnpm**: `npm install -g pnpm@12.10.1` (or `brew install pnpm`), matching `packageManager` in `package.json`. Don't use `corepack enable`. The Corepack bundled with Node 23 can't run pnpm 12 (`Cannot find module …/bin/pnpm.cjs`).
 - **[just](https://just.systems)**, the task runner (`brew install just` or `cargo install just`).
 
 ```sh
