@@ -537,6 +537,7 @@ function start(roleKey){
   overlay.hidden = true; paused = false; $('bPause').textContent = 'Pause';
   feedSeen = new Set(); $('feed').innerHTML = ''; lastHp = 100;
   if (window.__resetScene) window.__resetScene();
+  camYaw = 0;
   setPhase('opening');
 }
 
