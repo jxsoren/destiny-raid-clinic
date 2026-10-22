@@ -1,12 +1,12 @@
 import { render, screen } from '@solidjs/testing-library';
-import { ItemHeader, PhaseHeading, StatsStrip } from '../src';
+import { ItemHeader, Logo, PhaseHeading, StatsStrip } from '../src';
 
 const VOG_ARENA =
   'M44 8 L56 8 L62 22 L58 34 L72 42 L80 42 L80 70 L66 70 L66 82 L34 82 L34 70 L20 70 L20 50 L34 40 L40 36 L37 22 Z';
 
 describe('ItemHeader', () => {
   it('renders name, type line and curly-quoted flavor with the logo tile', () => {
-    render(() => (
+    const { container } = render(() => (
       <ItemHeader
         tile="logo"
         name="Raid Clinic"
@@ -17,7 +17,8 @@ describe('ItemHeader', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Raid Clinic' })).toHaveClass('t-name');
     expect(screen.getByText('Raid trainer')).toHaveClass('t-type');
     expect(screen.getByText('“Learn it before the pull.”')).toHaveClass('t-flavor');
-    expect(screen.getByRole('img', { name: 'Raid Clinic' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'Raid Clinic' })).toBeNull();
+    expect(container.querySelector('.rc-item__tile svg')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('renders the arena outline tile and omits a missing flavor', () => {
@@ -26,6 +27,23 @@ describe('ItemHeader', () => {
     ));
     expect(container.querySelector('.rc-item__tile--arena path')).toHaveAttribute('d', VOG_ARENA);
     expect(container.querySelector('.t-flavor')).toBeNull();
+  });
+});
+
+describe('ItemHeader level', () => {
+  it('renders the requested heading level', () => {
+    render(() => <ItemHeader level={2} tile="logo" name="Second" type="x" />);
+    expect(screen.getByRole('heading', { level: 2, name: 'Second' })).toBeInTheDocument();
+  });
+});
+
+describe('Logo', () => {
+  it('can be decorative', () => {
+    const { container } = render(() => <Logo decorative />);
+    const svg = container.querySelector('svg');
+    expect(svg).toHaveAttribute('aria-hidden', 'true');
+    expect(svg).not.toHaveAttribute('role');
+    expect(container.querySelector('title')).toBeNull();
   });
 });
 

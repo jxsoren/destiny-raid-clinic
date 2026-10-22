@@ -38,6 +38,8 @@ jobs:
       - run: pnpm exec biome ci .
       - run: node scripts/lint-styles.mjs
       - run: pnpm run test:scripts
+      - run: pnpm --filter @raid-clinic/ui exec tsc -p . --noEmit
+      - run: pnpm --filter site check
       - run: pnpm --filter @raid-clinic/ui test
       - run: pnpm --filter site build
       - run: pnpm run test:prototype
