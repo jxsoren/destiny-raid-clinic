@@ -90,17 +90,29 @@ export function Director(props: {
     return { raid, target, avoid };
   });
 
+  // True from the moment a raid is opening until the page is left (or restored from bfcache).
+  let navigating = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
   const open = (id: string | null) => {
-    if (!id) return;
+    if (!id || navigating) return;
     const p = planets().find((x) => x.id === id);
     if (!p) return;
+    navigating = true;
     setSelected(id);
+    const url = `/raids/${id}/`;
+    // The zoom only exists with the live renderer; without it there is nothing to wait for.
+    const live = Boolean(root.querySelector('.rc-space--live'));
+    const reduce =
+      typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!live || reduce) {
+      window.location.assign(url);
+      return;
+    }
     const { w, h } = size();
     const [cx, cy] = worldPosition(p.planet.position, w && h ? w / h : 16 / 9);
     setView({ cx, cy, zoom: OPEN_ZOOM });
-    const reduce =
-      typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setTimeout(() => window.location.assign(`/raids/${id}/`), reduce ? 0 : OPEN_MS);
+    timer = setTimeout(() => window.location.assign(url), OPEN_MS);
   };
 
   const openSearch = () => {
@@ -140,12 +152,22 @@ export function Director(props: {
       setSelected(nearestInDirection(screens(), selected(), dir));
     };
     window.addEventListener('keydown', onKey);
+    // Back from a raid can restore this page from the bfcache mid-zoom: reset it.
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      navigating = false;
+      clearTimeout(timer);
+      setView({ cx: 0, cy: 0, zoom: 1 });
+    };
+    window.addEventListener('pageshow', onPageShow);
     const measure = () => setSize({ w: root.clientWidth, h: root.clientHeight });
     measure();
     const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null;
     observer?.observe(root);
     onCleanup(() => {
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('pageshow', onPageShow);
+      clearTimeout(timer);
       observer?.disconnect();
     });
   });
