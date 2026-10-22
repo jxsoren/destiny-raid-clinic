@@ -12,7 +12,7 @@ import {
 } from 'solid-js';
 import { SelectionBrackets } from '../SelectionBrackets';
 import { AVAILABILITY_LABEL, StatusIcon } from '../StatusIcon';
-import { labelClearance, worldRadius } from './layout';
+import { HOME_VIEW, labelClearance, planetScreen, worldRadius } from './layout';
 import { pickQuality } from './quality';
 import type { SpaceRenderer } from './SpaceRenderer';
 import type { PlanetScreen, ScenePlanet, View } from './types';
@@ -133,6 +133,21 @@ export function SpaceScene(props: SpaceSceneProps) {
     });
   });
   createEffect(() => renderer()?.setPlanets(props.planets));
+  // Before the renderer is live (and in fallback), report the CSS geometry: same positions at
+  // the home view, so tooltips and keyboard navigation work without 3D.
+  createEffect(() => {
+    if (mode() === 'live') return;
+    const emit = () => {
+      const { width, height } = root.getBoundingClientRect();
+      if (width > 0 && height > 0) {
+        props.onLayout?.(props.planets.map((p) => planetScreen(p, HOME_VIEW, width, height)));
+      }
+    };
+    emit();
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(emit) : null;
+    observer?.observe(root);
+    onCleanup(() => observer?.disconnect());
+  });
   const ids = createMemo(() => props.planets.map((p) => p.id));
   const byId = createMemo(() => new Map(props.planets.map((p) => [p.id, p])));
   let firstView = true;
