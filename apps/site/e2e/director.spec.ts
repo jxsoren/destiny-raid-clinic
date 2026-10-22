@@ -72,12 +72,8 @@ test("the tooltip stays off the selected planet's own label", async ({ page }) =
   const tip = page.getByRole('tooltip');
   await expect(tip).toContainText("King's Fall");
   const [t, l] = await Promise.all([tip.boundingBox(), label.boundingBox()]);
-  expect(t).not.toBeNull();
-  expect(l).not.toBeNull();
+  if (!t || !l) throw new Error('tooltip or label has no bounding box');
   const intersects =
-    t!.x < l!.x + l!.width &&
-    l!.x < t!.x + t!.width &&
-    t!.y < l!.y + l!.height &&
-    l!.y < t!.y + t!.height;
+    t.x < l.x + l.width && l.x < t.x + t.width && t.y < l.y + l.height && l.y < t.y + t.height;
   expect(intersects).toBe(false);
 });
