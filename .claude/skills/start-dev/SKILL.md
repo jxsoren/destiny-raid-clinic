@@ -20,7 +20,7 @@ Check in one command: `just --version`, `pnpm --version`, `node --version`, `car
 | `just` | every task | `brew install just` |
 | `pnpm` | JS tooling | `npm install -g pnpm@<version>` (or `brew install pnpm`), using the version pinned in `package.json`'s `packageManager`. Not `corepack enable`: older Corepack (e.g. 0.31, bundled with Node 23) can't run pnpm 12 and fails with `Cannot find module …/corepack/…/bin/pnpm.cjs`. If you see that error, run `corepack disable pnpm`, delete that cache folder, and install pnpm with npm |
 | Node ≥ 22 | dev server, tests | `brew install node` |
-| `cargo` | Rust crates, `just check` | `brew install rustup && rustup-init`. Prefer rustup over Homebrew's `rust`, because it honors `rust-toolchain.toml` and can add the WebAssembly target |
+| `cargo` | `raidlint` (content linter), `just check` | `brew install rustup && rustup-init`. Prefer rustup over Homebrew's `rust`, because it honors `rust-toolchain.toml` |
 
 Installing a tool changes the user's machine, so ask before running any install command. If only `cargo` is missing, the dev server can still start, so carry on and mention it.
 
