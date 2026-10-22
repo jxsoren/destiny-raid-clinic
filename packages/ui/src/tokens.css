@@ -44,6 +44,9 @@
   --tip-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
   --cube-hi: #e4f4fb;
   --cube-lo: #6fb6d8;
+  /* CSS-drawn fallback planets (SpaceScene without 3D) */
+  --orb-shine: rgba(255, 255, 255, 0.35);
+  --orb-shade: rgba(0, 0, 0, 0.85);
 
   /* Prompts */
   --prompt: #08090a;
