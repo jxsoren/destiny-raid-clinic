@@ -59,6 +59,12 @@ describe('stepScenario', () => {
     expect(state.mechanics.wiped).toBe(false);
   });
 
+  it('has not reset yet on the tick just before LOOP_SECONDS', () => {
+    const state = run(16 * 30 - 1);
+    expect(state.tick).toBe(16 * 30 - 1);
+    expect(state.mechanics.callouts['oracle-order']).toEqual({ status: 'correct', nextIndex: 3 });
+  });
+
   it('resets back to the start after LOOP_SECONDS', () => {
     const state = run(16 * 30);
     expect(state.tick).toBe(0);
