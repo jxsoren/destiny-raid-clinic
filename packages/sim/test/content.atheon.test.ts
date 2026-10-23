@@ -1,13 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { toMechanicsConfig, toArenaDef } from '../src/content';
-import type { EncounterMechanicsContent, EncounterArenaContent } from '../src/content';
+import type { EncounterArenaContent, EncounterMechanicsContent } from '../src/content';
+import { toArenaDef, toMechanicsConfig } from '../src/content';
 import type { World } from '../src/engine';
+import { distance } from '../src/geometry';
 import { createMechanicsState, stepMechanics } from '../src/mechanics';
 import { buildNavGrid } from '../src/navgrid';
 import { findPath } from '../src/pathfinding';
-import { distance } from '../src/geometry';
 
 const encounterPath = fileURLToPath(
   new URL(

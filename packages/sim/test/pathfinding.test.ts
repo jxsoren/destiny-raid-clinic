@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildNavGrid } from '../src/navgrid';
 import type { ArenaDef } from '../src/navgrid';
+import { buildNavGrid } from '../src/navgrid';
 import { findPath } from '../src/pathfinding';
 
 const openRoom: ArenaDef = {

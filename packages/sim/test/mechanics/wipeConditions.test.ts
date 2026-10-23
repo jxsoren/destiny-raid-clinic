@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateWipeConditions, initWipeTimerState } from '../../src/mechanics/wipeConditions';
 import type { WipeCondition } from '../../src/mechanics/wipeConditions';
+import { evaluateWipeConditions, initWipeTimerState } from '../../src/mechanics/wipeConditions';
 
 describe('initWipeTimerState', () => {
   it('starts with no elapsed time tracked', () => {
@@ -46,8 +46,8 @@ describe('evaluateWipeConditions', () => {
   });
 
   it('wipes once the plate has been unheld for the full grace period', () => {
-    let timerState = initWipeTimerState();
-    let result = evaluateWipeConditions([plateCondition], timerState, {
+    const timerState = initWipeTimerState();
+    const result = evaluateWipeConditions([plateCondition], timerState, {
       plateStates: { 'mars-plate': { held: false, heldBy: null } },
       calloutStates: {},
       dt: 7,

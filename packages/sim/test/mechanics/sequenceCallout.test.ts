@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { initSequenceCalloutState, stepSequenceCallout } from '../../src/mechanics/sequenceCallout';
 import type { CalloutEvent, SequenceCalloutConfig } from '../../src/mechanics/sequenceCallout';
+import { initSequenceCalloutState, stepSequenceCallout } from '../../src/mechanics/sequenceCallout';
 
 const config: SequenceCalloutConfig = { id: 'oracle-order', sequence: ['left', 'right', 'mid'] };
 

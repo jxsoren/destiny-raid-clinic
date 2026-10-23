@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildNavGrid, cellIndexAt, isWalkableAt } from '../src/navgrid';
 import type { ArenaDef } from '../src/navgrid';
+import { buildNavGrid, cellIndexAt, isWalkableAt } from '../src/navgrid';
 
 const openRoom: ArenaDef = {
   width: 20,

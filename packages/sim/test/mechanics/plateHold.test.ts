@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { initPlateState, stepPlate } from '../../src/mechanics/plateHold';
-import type { PlateConfig } from '../../src/mechanics/plateHold';
 import type { World } from '../../src/engine';
+import type { PlateConfig } from '../../src/mechanics/plateHold';
+import { initPlateState, stepPlate } from '../../src/mechanics/plateHold';
 
 const plate: PlateConfig = { id: 'mars-plate', position: { x: 50, y: 50 }, radius: 10 };
 

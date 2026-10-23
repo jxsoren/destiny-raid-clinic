@@ -1,8 +1,9 @@
 // Public API of @raid-clinic/ui/space. Import '@raid-clinic/ui/space.css' alongside components.css.
 // Render SpaceScene with client:only="solid-js" (live) or client:load with `fallback` (static).
-export { createRng, hashSeed } from './rng';
+
 export { HOME_VIEW, planetScreen, tweenView, worldPosition, worldRadius } from './layout';
 export { nearestInDirection } from './navigate';
+export { createRng, hashSeed } from './rng';
 export { SpaceScene, type SpaceSceneProps } from './SpaceScene';
 export {
   type PlanetScreen,

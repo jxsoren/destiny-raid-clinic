@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { toArenaDef, toMechanicsConfig } from '../src/content';
 import type { EncounterArenaContent, EncounterMechanicsContent } from '../src/content';
+import { toArenaDef, toMechanicsConfig } from '../src/content';
 
 describe('toMechanicsConfig', () => {
   it('maps plateHold and sequenceCallout mechanics entries plus wipe conditions', () => {

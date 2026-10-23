@@ -1,12 +1,15 @@
 // Public API of @raid-clinic/sim.
-export { distance, distanceToSegment, pointInPolygon } from './geometry';
-export type { Point } from './geometry';
-export { buildNavGrid, cellIndexAt, isWalkableAt } from './navgrid';
-export type { ArenaDef, NavGrid } from './navgrid';
-export { findPath } from './pathfinding';
+
+export type {
+  EncounterArenaContent,
+  EncounterMechanicsContent,
+  MechanicContentEntry,
+} from './content';
+export { toArenaDef, toMechanicsConfig } from './content';
+export type { EngineInputs, Entity, Snapshot, World } from './engine';
 export { createWorld, step, TICK_HZ, toSnapshot } from './engine';
-export type { Entity, EngineInputs, Snapshot, World } from './engine';
-export { createMechanicsState, stepMechanics } from './mechanics';
+export type { Point } from './geometry';
+export { distance, distanceToSegment, pointInPolygon } from './geometry';
 export type {
   CalloutEvent,
   EncounterMechanicsConfig,
@@ -18,7 +21,7 @@ export type {
   WipeCondition,
   WipeTimerState,
 } from './mechanics';
-export { toMechanicsConfig } from './content';
-export type { EncounterMechanicsContent, MechanicContentEntry } from './content';
-export { toArenaDef } from './content';
-export type { EncounterArenaContent } from './content';
+export { createMechanicsState, stepMechanics } from './mechanics';
+export type { ArenaDef, NavGrid } from './navgrid';
+export { buildNavGrid, cellIndexAt, isWalkableAt } from './navgrid';
+export { findPath } from './pathfinding';
