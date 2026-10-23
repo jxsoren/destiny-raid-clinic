@@ -6,3 +6,15 @@ export type { ArenaDef, NavGrid } from './navgrid';
 export { findPath } from './pathfinding';
 export { createWorld, step, TICK_HZ, toSnapshot } from './engine';
 export type { Entity, EngineInputs, Snapshot, World } from './engine';
+export { createMechanicsState, stepMechanics } from './mechanics';
+export type {
+  CalloutEvent,
+  EncounterMechanicsConfig,
+  MechanicsState,
+  PlateConfig,
+  PlateState,
+  SequenceCalloutConfig,
+  SequenceCalloutState,
+  WipeCondition,
+  WipeTimerState,
+} from './mechanics';
