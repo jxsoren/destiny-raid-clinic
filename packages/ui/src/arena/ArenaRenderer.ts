@@ -48,7 +48,7 @@ const FRAME_MARGIN = 1.2;
  * framing is always the binding constraint at realistic widescreen aspect ratios), but a future
  * arena wider than it is deep could clip horizontally. Revisit if that comes up.
  */
-function overviewOffset(arenaHeight: number): { elevation: number; setback: number } {
+export function overviewOffset(arenaHeight: number): { elevation: number; setback: number } {
   const angle = (CAMERA_ANGLE_DEGREES * Math.PI) / 180;
   const halfFov = (FOV_DEGREES * Math.PI) / 360;
   const spanPerUnitHeight = 1 / Math.tan(angle - halfFov) - 1 / Math.tan(angle + halfFov);
