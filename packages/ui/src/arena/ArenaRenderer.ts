@@ -24,6 +24,39 @@ const WALL_THICKNESS = 2;
 /** Obstacle patches sit this far above the ground, to avoid z-fighting. */
 const OBSTACLE_LIFT = 0.02;
 
+/** Vertical field of view for the fixed establishing-shot camera. */
+const FOV_DEGREES = 50;
+/** The camera's down-angle from horizontal. */
+const CAMERA_ANGLE_DEGREES = 55;
+/** Extra headroom so the arena isn't framed exactly edge-to-edge. */
+const FRAME_MARGIN = 1.2;
+
+/**
+ * Derives the camera's height and backward setback (both along the `arena.height` axis) so that,
+ * looking down at `CAMERA_ANGLE_DEGREES` with `FOV_DEGREES` vertical FOV, the visible strip of
+ * ground plane between the near and far edges of the view frustum spans `arenaHeight * FRAME_MARGIN`.
+ *
+ * For a camera at height `h` looking down at angle `a` from horizontal, a ground point at
+ * depression angle `a` from the camera's base is at horizontal distance `h / tan(a)` — so the near
+ * edge of the vertical FOV (steeper angle `a + halfFov`, closer) and far edge (shallower angle
+ * `a - halfFov`, farther) bound a visible ground strip of length
+ * `h * (1/tan(a - halfFov) - 1/tan(a + halfFov))`. Solving for `h` given a target span gives the
+ * formula below; the setback (how far back from the target point the camera sits) is then
+ * `h / tan(a)`, the horizontal distance to the point directly below the look-at target.
+ *
+ * Only solves for the height axis — fine for Atheon (720x1000, taller than wide, so the vertical
+ * framing is always the binding constraint at realistic widescreen aspect ratios), but a future
+ * arena wider than it is deep could clip horizontally. Revisit if that comes up.
+ */
+function overviewOffset(arenaHeight: number): { elevation: number; setback: number } {
+  const angle = (CAMERA_ANGLE_DEGREES * Math.PI) / 180;
+  const halfFov = (FOV_DEGREES * Math.PI) / 360;
+  const spanPerUnitHeight = 1 / Math.tan(angle - halfFov) - 1 / Math.tan(angle + halfFov);
+  const elevation = (arenaHeight * FRAME_MARGIN) / spanPerUnitHeight;
+  const setback = elevation / Math.tan(angle);
+  return { elevation, setback };
+}
+
 function shapeFromPolygon(points: Point[]): Shape {
   const shape = new Shape();
   shape.moveTo(points[0].x, points[0].y);
@@ -97,13 +130,13 @@ export class ArenaRenderer {
     sun.position.set(arena.width * 0.3, arena.height * 0.9, -arena.height * 0.2);
     this.scene.add(sun);
 
-    // A fixed, angled-overview establishing shot framing the whole arena. Position/target are
-    // chosen so the full width x height bounding box fits within the field of view at a down-angle
-    // of about 55 degrees. Never moves — interactive camera controls are a later sub-project.
-    this.camera = new PerspectiveCamera(50, 1, 1, 5000);
+    // A fixed, angled-overview establishing shot framing the whole arena. Never moves — interactive
+    // camera controls are a later sub-project.
+    this.camera = new PerspectiveCamera(FOV_DEGREES, 1, 1, 5000);
     const centerX = arena.width / 2;
     const centerZ = arena.height / 2;
-    this.camera.position.set(centerX, arena.height * 1.1, centerZ - arena.height * 0.75);
+    const { elevation, setback } = overviewOffset(arena.height);
+    this.camera.position.set(centerX, elevation, centerZ - setback);
     this.camera.lookAt(centerX, 0, centerZ);
   }
 
