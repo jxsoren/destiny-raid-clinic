@@ -1,0 +1,24 @@
+---
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import '@raid-clinic/ui/arena.css';
+import { ArenaScene } from '@raid-clinic/ui/arena';
+import { toArenaDef } from '@raid-clinic/sim';
+import type { EncounterArenaContent } from '@raid-clinic/sim';
+import Base from '../../../../layouts/Base.astro';
+
+// content/raids is the single source of truth. process.cwd() is the site root (apps/site).
+const encounterPath = join(
+  process.cwd(),
+  '../../content/raids/vault-of-glass/encounters/07-atheon/encounter.json',
+);
+const encounter = JSON.parse(readFileSync(encounterPath, 'utf8')) as EncounterArenaContent;
+const arena = toArenaDef(encounter);
+---
+
+<Base
+  title="Atheon, Time's Conflux · Trainer"
+  description="Practice Atheon, Time's Conflux."
+>
+  <ArenaScene client:only="solid-js" arena={arena} />
+</Base>

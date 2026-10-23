@@ -27,12 +27,21 @@ const { raid } = Astro.props as { raid: RaidSummary };
         <ol class="raid__encounters">
           {raid.encounters.map((e) => (
             <li>
-              <PerkNode
-                state={e.trainer ? 'playable' : e.guide ? 'guide' : 'soon'}
-                label={String(e.order).padStart(2, '0')}
-                title={e.name}
-              />
-              <span class="t-label">{e.name}</span>
+              {e.trainer ? (
+                <a href={`/raids/${raid.id}/${e.id}/trainer`} class="raid__encounter-link">
+                  <PerkNode state="playable" label={String(e.order).padStart(2, '0')} title={e.name} />
+                  <span class="t-label">{e.name}</span>
+                </a>
+              ) : (
+                <>
+                  <PerkNode
+                    state={e.guide ? 'guide' : 'soon'}
+                    label={String(e.order).padStart(2, '0')}
+                    title={e.name}
+                  />
+                  <span class="t-label">{e.name}</span>
+                </>
+              )}
             </li>
           ))}
         </ol>
@@ -62,6 +71,11 @@ const { raid } = Astro.props as { raid: RaidSummary };
     display: flex;
     align-items: center;
     gap: 14px;
+  }
+  .raid__encounter-link {
+    display: contents;
+    color: inherit;
+    text-decoration: none;
   }
   .raid__back {
     color: var(--muted);
