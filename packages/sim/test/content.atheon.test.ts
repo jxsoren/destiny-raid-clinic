@@ -23,6 +23,13 @@ function worldWithEntityAt(x: number, y: number): World {
   };
 }
 
+// Atheon's real Oracle-order mechanic randomizes its 3-of-6 sequence at runtime, once per set.
+// encounter.json's `oracle-order` entry stores one representative sequence instead (as if called
+// for a specific drill/replay) — `SequenceCalloutConfig.sequence` is fixed at author time, so it
+// can't model runtime randomization. The Aegis relic-cleanse, Void meter, Imminent Detain, and
+// time-gate room sequencing mechanics are real parts of the encounter but aren't represented here
+// at all: none of them fit plate-hold/sequence-callout/wipe-conditions, the only primitives this
+// content wiring pass covers.
 describe('Atheon encounter.json mechanics content', () => {
   it('configures both sync plates and the Oracle-order callout, not wiped', () => {
     const state = createMechanicsState(config);
