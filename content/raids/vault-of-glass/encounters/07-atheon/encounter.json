@@ -11,14 +11,112 @@
     "walls": [],
     "obstacles": [],
     "stairs": [],
-    "rooms": []
+    "rooms": [
+      { "id": "vault", "label": "Vault", "center": { "x": 850, "y": 560 }, "radius": 175 },
+      {
+        "id": "oracle-room",
+        "label": "Time's Conflux",
+        "center": { "x": 363, "y": 542 },
+        "radius": 200
+      }
+    ]
   },
-  "markers": [],
-  "roles": [],
+  "markers": [
+    { "id": "mars-plate", "label": "Mars sync plate", "position": { "x": 201.5, "y": 860 } },
+    { "id": "venus-plate", "label": "Venus sync plate", "position": { "x": 520, "y": 860 } },
+    { "id": "mars-gate", "label": "Mars time gate", "position": { "x": 215, "y": 727.5 } },
+    { "id": "venus-gate", "label": "Venus time gate", "position": { "x": 515, "y": 727.5 } },
+    { "id": "oracle-1", "label": "Oracle 1", "position": { "x": 268.5, "y": 395 } },
+    { "id": "oracle-2", "label": "Oracle 2", "position": { "x": 362.5, "y": 365 } },
+    { "id": "oracle-3", "label": "Oracle 3", "position": { "x": 461, "y": 396.5 } },
+    { "id": "oracle-4", "label": "Oracle 4", "position": { "x": 244, "y": 695 } },
+    { "id": "oracle-5", "label": "Oracle 5", "position": { "x": 361, "y": 711 } },
+    { "id": "oracle-6", "label": "Oracle 6", "position": { "x": 478.5, "y": 687.5 } },
+    { "id": "dps-platform", "label": "DPS platform", "position": { "x": 361, "y": 795 } },
+    { "id": "rally", "label": "Rally point", "position": { "x": 364, "y": 645 } }
+  ],
+  "roles": [
+    {
+      "id": "relic",
+      "label": "Aegis Holder",
+      "tag": "AEGIS",
+      "team": "away",
+      "color": "#f2c46b",
+      "description": "Go through the gate, pick up the Aegis (the Relic), and cleanse your team before the Void blinds them.",
+      "bot": false
+    },
+    {
+      "id": "shooter",
+      "label": "Oracle Shooter",
+      "tag": "ORACLE A",
+      "team": "away",
+      "color": "#ef7d9c",
+      "description": "Go through the gate and destroy the 1st and 3rd Oracle of each set, in the called order.",
+      "bot": false
+    },
+    {
+      "id": "shooterB",
+      "label": "Oracle Shooter B",
+      "tag": "ORACLE B",
+      "team": "away",
+      "color": "#ff9f6b",
+      "description": "Destroys the 2nd Oracle of each set. Played by a bot by default.",
+      "bot": true
+    },
+    {
+      "id": "plate",
+      "label": "Plate Holder",
+      "tag": "PLATE",
+      "team": "home",
+      "color": "#7fe0d0",
+      "description": "Read where the away team went and hold the matching sync plate so the gate stays open.",
+      "bot": false
+    },
+    {
+      "id": "caller",
+      "label": "Caller",
+      "tag": "CALLER",
+      "team": "home",
+      "color": "#a9b8ff",
+      "description": "Watch the Oracles light up in the Vault and enter the order on the callout pad.",
+      "bot": false
+    },
+    {
+      "id": "adds",
+      "label": "Add Clear",
+      "tag": "ADDS",
+      "team": "home",
+      "color": "#b9e07a",
+      "description": "Shoot Supplicants before they reach the Vault team, and don't stand close together.",
+      "bot": false
+    }
+  ],
   "enemies": [],
   "phases": [],
-  "mechanics": [],
-  "wipe_conditions": [],
+  "mechanics": [
+    { "id": "mars-plate", "type": "plateHold", "position": { "x": 201.5, "y": 860 }, "radius": 34 },
+    { "id": "venus-plate", "type": "plateHold", "position": { "x": 520, "y": 860 }, "radius": 34 },
+    {
+      "id": "oracle-order",
+      "type": "sequenceCallout",
+      "sequence": ["oracle-2", "oracle-5", "oracle-1"]
+    }
+  ],
+  "wipe_conditions": [
+    {
+      "id": "mars-plate-check",
+      "type": "plateMustBeHeld",
+      "plateId": "mars-plate",
+      "graceSeconds": 7
+    },
+    {
+      "id": "venus-plate-check",
+      "type": "plateMustBeHeld",
+      "plateId": "venus-plate",
+      "graceSeconds": 7
+    },
+    { "id": "oracle-order-check", "type": "calloutMustSucceed", "calloutId": "oracle-order" }
+  ],
   "damage": {
     "windows": [],
     "boss_health": null,
