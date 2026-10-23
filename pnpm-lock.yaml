@@ -219,6 +219,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@raid-clinic/sim':
+        specifier: workspace:*
+        version: link:../sim
       solid-js:
         specifier: 1.9.16
         version: 1.9.16
