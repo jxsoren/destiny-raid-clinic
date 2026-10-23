@@ -1,10 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { toMechanicsConfig } from '../src/content';
-import type { EncounterMechanicsContent } from '../src/content';
+import { toMechanicsConfig, toArenaDef } from '../src/content';
+import type { EncounterMechanicsContent, EncounterArenaContent } from '../src/content';
 import type { World } from '../src/engine';
 import { createMechanicsState, stepMechanics } from '../src/mechanics';
+import { buildNavGrid } from '../src/navgrid';
+import { findPath } from '../src/pathfinding';
+import { distance } from '../src/geometry';
 
 const encounterPath = fileURLToPath(
   new URL(
@@ -79,5 +82,29 @@ describe('Atheon encounter.json mechanics content', () => {
     );
     expect(state.wiped).toBe(true);
     expect(state.wipeReason).toBe('oracle-order-check');
+  });
+});
+
+const arenaDef = toArenaDef(encounter as unknown as EncounterArenaContent);
+const grid = buildNavGrid(arenaDef, 5);
+
+describe('Atheon encounter.json arena geometry', () => {
+  it('routes around a real obstacle instead of straight through it', () => {
+    const from = { x: 150, y: 580 };
+    const to = { x: 300, y: 580 };
+    const path = findPath(grid, from, to);
+
+    expect(path.length).toBeGreaterThan(0);
+
+    let totalLength = 0;
+    let previous = from;
+    for (const point of path) {
+      totalLength += distance(previous, point);
+      previous = point;
+    }
+
+    const straightLineDistance = distance(from, to);
+    expect(straightLineDistance).toBe(150);
+    expect(totalLength).toBeGreaterThan(straightLineDistance);
   });
 });
