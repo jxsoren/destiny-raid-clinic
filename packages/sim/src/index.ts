@@ -18,3 +18,5 @@ export type {
   WipeCondition,
   WipeTimerState,
 } from './mechanics';
+export { toMechanicsConfig } from './content';
+export type { EncounterMechanicsContent, MechanicContentEntry } from './content';
