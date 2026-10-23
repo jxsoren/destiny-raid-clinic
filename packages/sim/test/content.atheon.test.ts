@@ -88,6 +88,10 @@ describe('Atheon encounter.json mechanics content', () => {
 const arenaDef = toArenaDef(encounter as unknown as EncounterArenaContent);
 const grid = buildNavGrid(arenaDef, 5);
 
+// This covers only 2D pathfinding geometry (walkable regions, obstacles, walls). Atheon's real
+// stairs/multi-level height data is deliberately not in `arena.stairs`/`arena.levels` yet — the
+// prototype's own 2D pathfinding never consults height, so it's a pure rendering concern, deferred
+// to the scene-shell sub-project where it first becomes visually relevant.
 describe('Atheon encounter.json arena geometry', () => {
   it('routes around a real obstacle instead of straight through it', () => {
     const from = { x: 150, y: 580 };
