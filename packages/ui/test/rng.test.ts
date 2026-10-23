@@ -1,6 +1,6 @@
+import { createRng as createRngPublic, hashSeed as hashSeedPublic } from '@raid-clinic/ui/space';
 import { describe, expect, it } from 'vitest';
 import { createRng, hashSeed } from '../src/space/rng';
-import { createRng as createRngPublic, hashSeed as hashSeedPublic } from '@raid-clinic/ui/space';
 
 describe('createRng', () => {
   it('repeats the same sequence for the same seed and stays in [0, 1)', () => {

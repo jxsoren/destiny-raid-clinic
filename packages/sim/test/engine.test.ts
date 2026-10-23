@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildNavGrid } from '../src/navgrid';
-import type { ArenaDef } from '../src/navgrid';
 import { createWorld, step, TICK_HZ, toSnapshot } from '../src/engine';
+import type { ArenaDef } from '../src/navgrid';
+import { buildNavGrid } from '../src/navgrid';
 
 const openRoom: ArenaDef = {
   width: 100,

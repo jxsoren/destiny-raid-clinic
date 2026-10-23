@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createMechanicsState, stepMechanics } from '../../src/mechanics/index';
-import type { EncounterMechanicsConfig } from '../../src/mechanics/index';
 import type { World } from '../../src/engine';
+import type { EncounterMechanicsConfig } from '../../src/mechanics/index';
+import { createMechanicsState, stepMechanics } from '../../src/mechanics/index';
 
 const config: EncounterMechanicsConfig = {
   plates: [{ id: 'mars-plate', position: { x: 50, y: 50 }, radius: 10 }],

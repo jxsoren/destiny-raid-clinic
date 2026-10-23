@@ -1,6 +1,6 @@
+import type { World } from '../engine';
 import type { Point } from '../geometry';
 import { distance } from '../geometry';
-import type { World } from '../engine';
 
 /** A circular "stand here to hold" zone — sync plates, DPS plates, add-clear zones, etc. */
 export interface PlateConfig {

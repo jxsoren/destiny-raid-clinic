@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { toMechanicsConfig } from '../src/content';
-import type { EncounterMechanicsContent } from '../src/content';
+import type { EncounterArenaContent, EncounterMechanicsContent } from '../src/content';
+import { toArenaDef, toMechanicsConfig } from '../src/content';
 
 describe('toMechanicsConfig', () => {
   it('maps plateHold and sequenceCallout mechanics entries plus wipe conditions', () => {
@@ -39,5 +39,46 @@ describe('toMechanicsConfig', () => {
     expect(() => toMechanicsConfig(content)).toThrow(
       'Unrecognized mechanics entry type: unknownType',
     );
+  });
+});
+
+describe('toArenaDef', () => {
+  it('maps an encounter arena field to an ArenaDef', () => {
+    const content: EncounterArenaContent = {
+      arena: {
+        width: 100,
+        height: 80,
+        walkable: [
+          [
+            { x: 0, y: 0 },
+            { x: 100, y: 0 },
+            { x: 100, y: 80 },
+            { x: 0, y: 80 },
+          ],
+        ],
+        obstacles: [
+          [
+            { x: 40, y: 30 },
+            { x: 60, y: 30 },
+            { x: 60, y: 50 },
+            { x: 40, y: 50 },
+          ],
+        ],
+        walls: [
+          [
+            { x: 0, y: 40 },
+            { x: 20, y: 40 },
+          ],
+        ],
+      },
+    };
+
+    expect(toArenaDef(content)).toEqual({
+      width: 100,
+      height: 80,
+      walkable: content.arena.walkable,
+      obstacles: content.arena.obstacles,
+      walls: content.arena.walls,
+    });
   });
 });
