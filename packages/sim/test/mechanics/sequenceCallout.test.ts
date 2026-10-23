@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  initSequenceCalloutState,
-  stepSequenceCallout,
-} from '../../src/mechanics/sequenceCallout';
-import type {
-  CalloutEvent,
-  SequenceCalloutConfig,
-} from '../../src/mechanics/sequenceCallout';
+import { initSequenceCalloutState, stepSequenceCallout } from '../../src/mechanics/sequenceCallout';
+import type { CalloutEvent, SequenceCalloutConfig } from '../../src/mechanics/sequenceCallout';
 
 const config: SequenceCalloutConfig = { id: 'oracle-order', sequence: ['left', 'right', 'mid'] };
 
@@ -39,9 +33,7 @@ describe('stepSequenceCallout', () => {
 
   it('fails on a wrong value', () => {
     const state = initSequenceCalloutState();
-    const events: CalloutEvent[] = [
-      { type: 'callout', calloutId: 'oracle-order', value: 'right' },
-    ];
+    const events: CalloutEvent[] = [{ type: 'callout', calloutId: 'oracle-order', value: 'right' }];
     expect(stepSequenceCallout(config, state, events)).toEqual({ status: 'failed', nextIndex: 0 });
   });
 
