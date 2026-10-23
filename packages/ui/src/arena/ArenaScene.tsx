@@ -1,8 +1,9 @@
 // The Atheon arena screen: a lazily loaded three.js renderer with no entities yet (scene shell
 // only). Mirrors SpaceScene.tsx's lifecycle shape, but with no CSS-equivalent fallback — there's
 // nothing meaningful to show for a mechanics trainer without 3D.
-import { createSignal, onCleanup, onMount, Show } from 'solid-js';
+
 import type { ArenaDef } from '@raid-clinic/sim';
+import { createSignal, onCleanup, onMount, Show } from 'solid-js';
 import type { ArenaRenderer } from './ArenaRenderer';
 
 export interface ArenaSceneProps {
