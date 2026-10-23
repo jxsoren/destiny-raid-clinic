@@ -46,6 +46,29 @@ describe('createScenarioState', () => {
   });
 });
 
+describe('createScenarioState with a venus-plate', () => {
+  const twoPlateConfig: EncounterMechanicsConfig = {
+    ...config,
+    plates: [...config.plates, { id: 'venus-plate', position: { x: 90, y: 90 }, radius: 10 }],
+    wipeConditions: [
+      ...config.wipeConditions,
+      { id: 'venus-plate-check', type: 'plateMustBeHeld', plateId: 'venus-plate', graceSeconds: 7 },
+    ],
+  };
+
+  it('spawns a second entity and walks it to the Venus plate too, so neither plate wipes', () => {
+    const state = createScenarioState(twoPlateConfig, rally);
+    expect(state.world.entities).toHaveLength(2);
+    expect(state.world.entities[1].id).toBe('bot-venus');
+
+    let next = state;
+    for (let i = 0; i < 10 * 30; i++) next = stepScenario(grid, twoPlateConfig, next);
+    expect(next.mechanics.plates['mars-plate'].held).toBe(true);
+    expect(next.mechanics.plates['venus-plate'].held).toBe(true);
+    expect(next.mechanics.wiped).toBe(false);
+  });
+});
+
 describe('stepScenario', () => {
   it('issues a move order toward the Mars plate on the first tick', () => {
     const state = stepScenario(grid, config, createScenarioState(config, rally));

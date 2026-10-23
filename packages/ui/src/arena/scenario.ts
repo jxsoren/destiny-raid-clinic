@@ -1,6 +1,12 @@
 // A hardcoded, looping script driving one bot entity through the real engine/mechanics pipeline:
 // walk to the Mars plate, submit the three scripted Oracle-order callouts, then reset. No rendering,
 // no input — see docs/superpowers/specs/2026-10-23-atheon-entities-mechanics-feedback-design.md.
+//
+// Atheon's real content also wipes if the Venus plate isn't held within its own grace period
+// (`venus-plate-check`), independently of the Mars plate — a real wipe condition the design doc's
+// "always a clean success" script didn't account for. When the config has a `venus-plate`, a second
+// scripted entity walks there too so neither plate's grace period ever expires. Configs without a
+// `venus-plate` (e.g. this file's own unit tests) get the original single-entity behavior.
 import type {
   CalloutEvent,
   EncounterMechanicsConfig,
@@ -17,6 +23,8 @@ export const TICK_SECONDS = 1 / TICK_HZ;
 const ENTITY_SPEED = 60;
 /** The scripted entity's id in the world. */
 export const ENTITY_ID = 'bot';
+/** The second scripted entity's id, used only when the config has a `venus-plate`. */
+export const ENTITY_ID_VENUS = 'bot-venus';
 /** The callout mechanic's id in Atheon's real content — this script is specific to that content. */
 const ORACLE_CALLOUT_ID = 'oracle-order';
 /** The whole script repeats after this many seconds. */
@@ -50,14 +58,21 @@ function marsPlatePosition(config: EncounterMechanicsConfig): Point {
   return plate.position;
 }
 
-/** Builds the scenario's starting state: a world with one entity at `rally`, and fresh mechanics
- * state for `config`. */
+/** `venus-plate`'s position, or `undefined` if `config` has no such plate (e.g. a synthetic
+ * single-plate test config) — the second entity is only spawned/moved when this is present. */
+function venusPlatePosition(config: EncounterMechanicsConfig): Point | undefined {
+  return config.plates.find((p) => p.id === 'venus-plate')?.position;
+}
+
+/** Builds the scenario's starting state: a world with one entity at `rally` (plus a second at
+ * `rally` too, when `config` has a `venus-plate`), and fresh mechanics state for `config`. */
 export function createScenarioState(config: EncounterMechanicsConfig, rally: Point): ScenarioState {
+  const entities = [{ id: ENTITY_ID, position: { ...rally }, path: [], speed: ENTITY_SPEED }];
+  if (venusPlatePosition(config)) {
+    entities.push({ id: ENTITY_ID_VENUS, position: { ...rally }, path: [], speed: ENTITY_SPEED });
+  }
   return {
-    world: createWorld(
-      [{ id: ENTITY_ID, position: { ...rally }, path: [], speed: ENTITY_SPEED }],
-      1,
-    ),
+    world: createWorld(entities, 1),
     mechanics: createMechanicsState(config),
     tick: 0,
     rally,
@@ -81,7 +96,14 @@ export function stepScenario(
   const tick = state.tick + 1;
   if (tick >= LOOP_TICKS) return createScenarioState(config, state.rally);
 
-  const moveOrders = state.tick === 0 ? { [ENTITY_ID]: marsPlatePosition(config) } : undefined;
+  const venusPosition = venusPlatePosition(config);
+  const moveOrders =
+    state.tick === 0
+      ? {
+          [ENTITY_ID]: marsPlatePosition(config),
+          ...(venusPosition ? { [ENTITY_ID_VENUS]: venusPosition } : {}),
+        }
+      : undefined;
 
   const calloutEntry = CALLOUT_SCRIPT.find((entry) => entry.tick === tick);
   const calloutEvents: CalloutEvent[] = calloutEntry

@@ -197,7 +197,9 @@ export class ArenaRenderer {
   private readonly groundMaterial: MeshStandardMaterial;
   private readonly plateMaterials = new Map<string, MeshStandardMaterial>();
   private readonly markerMaterials = new Map<string, MeshStandardMaterial>();
-  private readonly entityMesh: Mesh;
+  /** One capsule mesh per scripted entity, keyed by `Entity.id` — `scenario.ts` may script more
+   * than one (e.g. Atheon's Mars + Venus plate bots). */
+  private readonly entityMeshes = new Map<string, Mesh>();
   private readonly grid: NavGrid;
   private scenario: ScenarioState;
   private accumulator = 0;
@@ -245,12 +247,15 @@ export class ArenaRenderer {
       this.markerMaterials.set(marker.id, material);
     }
 
-    const entityMaterial = new MeshStandardMaterial({ color: ENTITY_COLOR });
-    this.entityMesh = new Mesh(
-      new CapsuleGeometry(ENTITY_RADIUS, ENTITY_LENGTH, 4, 8),
-      entityMaterial,
-    );
-    this.scene.add(this.entityMesh);
+    for (const entity of this.scenario.world.entities) {
+      const entityMaterial = new MeshStandardMaterial({ color: ENTITY_COLOR });
+      const mesh = new Mesh(
+        new CapsuleGeometry(ENTITY_RADIUS, ENTITY_LENGTH, 4, 8),
+        entityMaterial,
+      );
+      this.scene.add(mesh);
+      this.entityMeshes.set(entity.id, mesh);
+    }
 
     this.scene.add(new HemisphereLight(0xffffff, 0x444444, 1));
     const sun = new DirectionalLight(0xffffff, 1);
@@ -310,8 +315,10 @@ export class ArenaRenderer {
   };
 
   private applyScenario(): void {
-    const entity = this.scenario.world.entities[0];
-    this.entityMesh.position.set(entity.position.x, ENTITY_HEIGHT, entity.position.y);
+    for (const entity of this.scenario.world.entities) {
+      const mesh = this.entityMeshes.get(entity.id);
+      mesh?.position.set(entity.position.x, ENTITY_HEIGHT, entity.position.y);
+    }
 
     for (const plateConfig of this.config.plates) {
       const material = this.plateMaterials.get(plateConfig.id);
