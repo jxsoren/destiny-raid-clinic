@@ -1,9 +1,11 @@
+import type { Point } from './geometry';
 import type {
   EncounterMechanicsConfig,
   PlateConfig,
   SequenceCalloutConfig,
   WipeCondition,
 } from './mechanics';
+import type { ArenaDef } from './navgrid';
 
 /** A `mechanics` array entry for encounter.json, discriminated on `type`. */
 export type MechanicContentEntry =
@@ -51,4 +53,29 @@ export function toMechanicsConfig(content: EncounterMechanicsContent): Encounter
   }
 
   return { plates, callouts, wipeConditions: content.wipe_conditions };
+}
+
+/** The shape of encounter.json's `arena` field that pathfinding needs, already `JSON.parse`d. */
+export interface EncounterArenaContent {
+  arena: {
+    width: number;
+    height: number;
+    walkable: Point[][];
+    obstacles: Point[][];
+    walls: Array<[Point, Point]>;
+  };
+}
+
+/**
+ * Builds the `ArenaDef` that `buildNavGrid` expects from an encounter.json's `arena` field. Does
+ * no file I/O — the caller reads and `JSON.parse`s the file first. A direct field-for-field copy —
+ * `ArenaDef`'s shape already matches encounter.json's `arena` fields exactly — kept as its own
+ * named function so a future schema divergence between encounter.json's `arena` and `ArenaDef` has
+ * one place to absorb it.
+ * @param content - the encounter's parsed `arena` field
+ * @returns the equivalent `ArenaDef`
+ */
+export function toArenaDef(content: EncounterArenaContent): ArenaDef {
+  const { width, height, walkable, obstacles, walls } = content.arena;
+  return { width, height, walkable, obstacles, walls };
 }

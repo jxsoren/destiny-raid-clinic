@@ -20,3 +20,5 @@ export type {
 } from './mechanics';
 export { toMechanicsConfig } from './content';
 export type { EncounterMechanicsContent, MechanicContentEntry } from './content';
+export { toArenaDef } from './content';
+export type { EncounterArenaContent } from './content';
