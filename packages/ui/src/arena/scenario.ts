@@ -81,8 +81,7 @@ export function stepScenario(
   const tick = state.tick + 1;
   if (tick >= LOOP_TICKS) return createScenarioState(config, state.rally);
 
-  const moveOrders =
-    state.tick === 0 ? { [ENTITY_ID]: marsPlatePosition(config) } : undefined;
+  const moveOrders = state.tick === 0 ? { [ENTITY_ID]: marsPlatePosition(config) } : undefined;
 
   const calloutEntry = CALLOUT_SCRIPT.find((entry) => entry.tick === tick);
   const calloutEvents: CalloutEvent[] = calloutEntry

@@ -1,5 +1,5 @@
-import { buildNavGrid } from '@raid-clinic/sim';
 import type { EncounterMechanicsConfig } from '@raid-clinic/sim';
+import { buildNavGrid } from '@raid-clinic/sim';
 import { describe, expect, it } from 'vitest';
 import { createScenarioState, stepScenario } from '../../src/arena/scenario';
 

@@ -3,7 +3,15 @@
 // through the real engine/mechanics pipeline, a fixed angled-overview camera, basic lighting and a
 // fixed-timestep render loop. No real input yet — see
 // docs/superpowers/specs/2026-10-23-atheon-entities-mechanics-feedback-design.md for why.
-import type { ArenaDef, EncounterMechanicsConfig, NavGrid, Point } from '@raid-clinic/sim';
+import type {
+  ArenaDef,
+  EncounterMechanicsConfig,
+  MechanicsState,
+  NavGrid,
+  Point,
+  SequenceCalloutConfig,
+  SequenceCalloutState,
+} from '@raid-clinic/sim';
 import { buildNavGrid, distance } from '@raid-clinic/sim';
 import {
   BoxGeometry,
@@ -21,7 +29,13 @@ import {
   SphereGeometry,
   WebGPURenderer,
 } from 'three/webgpu';
-import { createScenarioState, type ScenarioState, stepScenario, TICK_SECONDS, WIN_WINDOW_START_TICK } from './scenario';
+import {
+  createScenarioState,
+  type ScenarioState,
+  stepScenario,
+  TICK_SECONDS,
+  WIN_WINDOW_START_TICK,
+} from './scenario';
 
 export interface Marker {
   id: string;
@@ -49,13 +63,19 @@ const GROUND_DEFAULT_COLOR = 0x3a3a3a;
 const GROUND_WIPE_COLOR = 0x5a2626;
 const GROUND_WIN_COLOR = 0x2d5a2d;
 const PLATE_UNLIT_COLOR = 0x2a2a2a;
-const PLATE_LIT_COLORS: Record<string, number> = { 'mars-plate': 0xe0704f, 'venus-plate': 0xb6c95a };
+const PLATE_LIT_COLORS: Record<string, number> = {
+  'mars-plate': 0xe0704f,
+  'venus-plate': 0xb6c95a,
+};
 const MARKER_UNLIT_COLOR = 0x444444;
 const MARKER_LIT_COLOR = 0xffffff;
 const ENTITY_COLOR = 0x8ad0ff;
 
 /** The single callout mechanic the scripted scenario lights markers up for. */
 const ORACLE_CALLOUT_ID = 'oracle-order';
+
+/** Caps how many scenario ticks `frame()` will catch up on in a single real frame. */
+const MAX_TICKS_PER_FRAME = 10;
 
 /** Vertical field of view for the fixed establishing-shot camera. */
 const FOV_DEGREES = 50;
@@ -88,6 +108,35 @@ export function overviewOffset(arenaHeight: number): { elevation: number; setbac
   const elevation = (arenaHeight * FRAME_MARGIN) / spanPerUnitHeight;
   const setback = elevation / Math.tan(angle);
   return { elevation, setback };
+}
+
+/** A plate's disc color for its current held state. Warns (and falls back to white) on an id with
+ * no configured lit color — a content/renderer mismatch, not expected in normal operation. */
+export function plateColor(plateId: string, held: boolean): number {
+  if (!held) return PLATE_UNLIT_COLOR;
+  const lit = PLATE_LIT_COLORS[plateId];
+  if (lit === undefined) {
+    console.warn(`No lit color configured for plate "${plateId}"; falling back to white.`);
+    return 0xffffff;
+  }
+  return lit;
+}
+
+/** The ids of `calloutConfig`'s sequence values already correctly called, per `calloutState`. */
+export function litMarkerIds(
+  calloutConfig: SequenceCalloutConfig | undefined,
+  calloutState: SequenceCalloutState | undefined,
+): Set<string> {
+  if (!calloutConfig || !calloutState) return new Set();
+  return new Set(calloutConfig.sequence.slice(0, calloutState.nextIndex));
+}
+
+/** The ground's tint for the scenario's current outcome: wiped (red), a post-success win window
+ * (green), or the default gray otherwise. */
+export function groundColor(mechanics: MechanicsState, inWinWindow: boolean): number {
+  if (mechanics.wiped) return GROUND_WIPE_COLOR;
+  if (inWinWindow) return GROUND_WIN_COLOR;
+  return GROUND_DEFAULT_COLOR;
 }
 
 function shapeFromPolygon(points: Point[]): Shape {
@@ -197,7 +246,10 @@ export class ArenaRenderer {
     }
 
     const entityMaterial = new MeshStandardMaterial({ color: ENTITY_COLOR });
-    this.entityMesh = new Mesh(new CapsuleGeometry(ENTITY_RADIUS, ENTITY_LENGTH, 4, 8), entityMaterial);
+    this.entityMesh = new Mesh(
+      new CapsuleGeometry(ENTITY_RADIUS, ENTITY_LENGTH, 4, 8),
+      entityMaterial,
+    );
     this.scene.add(this.entityMesh);
 
     this.scene.add(new HemisphereLight(0xffffff, 0x444444, 1));
@@ -244,9 +296,14 @@ export class ArenaRenderer {
     const dt = this.lastTime === null ? 0 : Math.min(0.25, (now - this.lastTime) / 1000);
     this.lastTime = now;
     this.accumulator += dt;
-    while (this.accumulator >= TICK_SECONDS) {
+    // The `Math.min(0.25, dt)` clamp above is the main defense against a huge catch-up burst (e.g.
+    // after the tab was backgrounded), but MAX_TICKS_PER_FRAME is an explicit second guard so a
+    // future change to that clamp or to TICK_HZ can't silently reintroduce an unbounded loop here.
+    let ticksThisFrame = 0;
+    while (this.accumulator >= TICK_SECONDS && ticksThisFrame < MAX_TICKS_PER_FRAME) {
       this.scenario = stepScenario(this.grid, this.config, this.scenario);
       this.accumulator -= TICK_SECONDS;
+      ticksThisFrame++;
     }
     this.applyScenario();
     this.renderer.render(this.scene, this.camera);
@@ -260,24 +317,17 @@ export class ArenaRenderer {
       const material = this.plateMaterials.get(plateConfig.id);
       if (!material) continue;
       const held = this.scenario.mechanics.plates[plateConfig.id]?.held ?? false;
-      material.color.setHex(held ? (PLATE_LIT_COLORS[plateConfig.id] ?? 0xffffff) : PLATE_UNLIT_COLOR);
+      material.color.setHex(plateColor(plateConfig.id, held));
     }
 
-    const calloutState = this.scenario.mechanics.callouts[ORACLE_CALLOUT_ID];
     const calloutConfig = this.config.callouts.find((c) => c.id === ORACLE_CALLOUT_ID);
-    const litIds = new Set(
-      calloutConfig && calloutState ? calloutConfig.sequence.slice(0, calloutState.nextIndex) : [],
-    );
+    const calloutState = this.scenario.mechanics.callouts[ORACLE_CALLOUT_ID];
+    const litIds = litMarkerIds(calloutConfig, calloutState);
     for (const [id, material] of this.markerMaterials) {
       material.color.setHex(litIds.has(id) ? MARKER_LIT_COLOR : MARKER_UNLIT_COLOR);
     }
 
     const inWinWindow = this.scenario.tick >= WIN_WINDOW_START_TICK;
-    const groundColor = this.scenario.mechanics.wiped
-      ? GROUND_WIPE_COLOR
-      : inWinWindow
-        ? GROUND_WIN_COLOR
-        : GROUND_DEFAULT_COLOR;
-    this.groundMaterial.color.setHex(groundColor);
+    this.groundMaterial.color.setHex(groundColor(this.scenario.mechanics, inWinWindow));
   }
 }
