@@ -1,13 +1,15 @@
-// The Atheon arena screen: a lazily loaded three.js renderer with no entities yet (scene shell
-// only). Mirrors SpaceScene.tsx's lifecycle shape, but with no CSS-equivalent fallback — there's
-// nothing meaningful to show for a mechanics trainer without 3D.
+// The Atheon arena screen: a lazily loaded three.js renderer driving a scripted entity through the
+// real engine/mechanics pipeline. Mirrors SpaceScene.tsx's lifecycle shape, but with no
+// CSS-equivalent fallback — there's nothing meaningful to show for a mechanics trainer without 3D.
 
-import type { ArenaDef } from '@raid-clinic/sim';
+import type { ArenaDef, EncounterMechanicsConfig } from '@raid-clinic/sim';
 import { createSignal, onCleanup, onMount, Show } from 'solid-js';
-import type { ArenaRenderer } from './ArenaRenderer';
+import type { ArenaRenderer, Marker } from './ArenaRenderer';
 
 export interface ArenaSceneProps {
   arena: ArenaDef;
+  mechanics: EncounterMechanicsConfig;
+  markers: Marker[];
 }
 
 type Mode = 'loading' | 'live' | 'error';
@@ -28,7 +30,9 @@ export function ArenaScene(props: ArenaSceneProps) {
     if (!canvas) return;
     const target = canvas;
     import('./ArenaRenderer')
-      .then(({ ArenaRenderer }) => ArenaRenderer.create(target, props.arena))
+      .then(({ ArenaRenderer }) =>
+        ArenaRenderer.create(target, props.arena, props.mechanics, props.markers),
+      )
       .then((r) => {
         if (disposed) {
           r.dispose();

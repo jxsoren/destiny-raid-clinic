@@ -1,10 +1,22 @@
-// Owns the three.js scene for ArenaScene: ground/obstacle/wall meshes built from a real ArenaDef, a
-// fixed angled-overview camera, basic lighting and the render loop. No entities, no interactivity —
-// see docs/superpowers/specs/2026-10-23-atheon-scene-shell-design.md for why.
-import type { ArenaDef, Point } from '@raid-clinic/sim';
-import { distance } from '@raid-clinic/sim';
+// Owns the three.js scene for ArenaScene: ground/obstacle/wall meshes from a real ArenaDef, plate
+// and Oracle-marker meshes from the mechanics config, a scripted entity driven by scenario.ts
+// through the real engine/mechanics pipeline, a fixed angled-overview camera, basic lighting and a
+// fixed-timestep render loop. No real input yet — see
+// docs/superpowers/specs/2026-10-23-atheon-entities-mechanics-feedback-design.md for why.
+import type {
+  ArenaDef,
+  EncounterMechanicsConfig,
+  MechanicsState,
+  NavGrid,
+  Point,
+  SequenceCalloutConfig,
+  SequenceCalloutState,
+} from '@raid-clinic/sim';
+import { buildNavGrid, distance } from '@raid-clinic/sim';
 import {
   BoxGeometry,
+  CapsuleGeometry,
+  CircleGeometry,
   Color,
   DirectionalLight,
   HemisphereLight,
@@ -14,8 +26,22 @@ import {
   Scene,
   Shape,
   ShapeGeometry,
+  SphereGeometry,
   WebGPURenderer,
 } from 'three/webgpu';
+import {
+  createScenarioState,
+  type ScenarioState,
+  stepScenario,
+  TICK_SECONDS,
+  WIN_WINDOW_START_TICK,
+} from './scenario';
+
+export interface Marker {
+  id: string;
+  label: string;
+  position: Point;
+}
 
 /** Wall fences get this height since no real wall-height data exists yet (a placeholder). */
 const WALL_HEIGHT = 1;
@@ -23,6 +49,33 @@ const WALL_HEIGHT = 1;
 const WALL_THICKNESS = 2;
 /** Obstacle patches sit this far above the ground, to avoid z-fighting. */
 const OBSTACLE_LIFT = 0.02;
+/** Plate discs sit this far above the ground, above the obstacle layer. */
+const PLATE_LIFT = 0.03;
+/** Oracle marker sphere radius and resting height. */
+const MARKER_RADIUS = 6;
+const MARKER_HEIGHT = 8;
+/** Entity capsule dimensions: cylindrical mid-section length and end-cap radius. */
+const ENTITY_LENGTH = 6;
+const ENTITY_RADIUS = 2;
+const ENTITY_HEIGHT = ENTITY_RADIUS + ENTITY_LENGTH / 2;
+
+const GROUND_DEFAULT_COLOR = 0x3a3a3a;
+const GROUND_WIPE_COLOR = 0x5a2626;
+const GROUND_WIN_COLOR = 0x2d5a2d;
+const PLATE_UNLIT_COLOR = 0x2a2a2a;
+const PLATE_LIT_COLORS: Record<string, number> = {
+  'mars-plate': 0xe0704f,
+  'venus-plate': 0xb6c95a,
+};
+const MARKER_UNLIT_COLOR = 0x444444;
+const MARKER_LIT_COLOR = 0xffffff;
+const ENTITY_COLOR = 0x8ad0ff;
+
+/** The single callout mechanic the scripted scenario lights markers up for. */
+const ORACLE_CALLOUT_ID = 'oracle-order';
+
+/** Caps how many scenario ticks `frame()` will catch up on in a single real frame. */
+const MAX_TICKS_PER_FRAME = 10;
 
 /** Vertical field of view for the fixed establishing-shot camera. */
 const FOV_DEGREES = 50;
@@ -57,6 +110,35 @@ export function overviewOffset(arenaHeight: number): { elevation: number; setbac
   return { elevation, setback };
 }
 
+/** A plate's disc color for its current held state. Warns (and falls back to white) on an id with
+ * no configured lit color — a content/renderer mismatch, not expected in normal operation. */
+export function plateColor(plateId: string, held: boolean): number {
+  if (!held) return PLATE_UNLIT_COLOR;
+  const lit = PLATE_LIT_COLORS[plateId];
+  if (lit === undefined) {
+    console.warn(`No lit color configured for plate "${plateId}"; falling back to white.`);
+    return 0xffffff;
+  }
+  return lit;
+}
+
+/** The ids of `calloutConfig`'s sequence values already correctly called, per `calloutState`. */
+export function litMarkerIds(
+  calloutConfig: SequenceCalloutConfig | undefined,
+  calloutState: SequenceCalloutState | undefined,
+): Set<string> {
+  if (!calloutConfig || !calloutState) return new Set();
+  return new Set(calloutConfig.sequence.slice(0, calloutState.nextIndex));
+}
+
+/** The ground's tint for the scenario's current outcome: wiped (red), a post-success win window
+ * (green), or the default gray otherwise. */
+export function groundColor(mechanics: MechanicsState, inWinWindow: boolean): number {
+  if (mechanics.wiped) return GROUND_WIPE_COLOR;
+  if (inWinWindow) return GROUND_WIN_COLOR;
+  return GROUND_DEFAULT_COLOR;
+}
+
 function shapeFromPolygon(points: Point[]): Shape {
   const shape = new Shape();
   shape.moveTo(points[0].x, points[0].y);
@@ -85,7 +167,12 @@ function wallMesh(a: Point, b: Point, material: MeshStandardMaterial): Mesh {
 
 export class ArenaRenderer {
   /** Resolves once the GPU is ready; rejects when neither WebGPU nor WebGL2 is available. */
-  static async create(canvas: HTMLCanvasElement, arena: ArenaDef): Promise<ArenaRenderer> {
+  static async create(
+    canvas: HTMLCanvasElement,
+    arena: ArenaDef,
+    config: EncounterMechanicsConfig,
+    markers: Marker[],
+  ): Promise<ArenaRenderer> {
     const renderer = new WebGPURenderer({ canvas, antialias: true });
     try {
       await renderer.init();
@@ -102,20 +189,37 @@ export class ArenaRenderer {
       renderer.dispose();
       throw new Error('No WebGPU device or WebGL2 context');
     }
-    return new ArenaRenderer(renderer, arena);
+    return new ArenaRenderer(renderer, arena, config, markers);
   }
 
   private readonly scene = new Scene();
   private readonly camera: PerspectiveCamera;
+  private readonly groundMaterial: MeshStandardMaterial;
+  private readonly plateMaterials = new Map<string, MeshStandardMaterial>();
+  private readonly markerMaterials = new Map<string, MeshStandardMaterial>();
+  /** One capsule mesh per scripted entity, keyed by `Entity.id` — `scenario.ts` may script more
+   * than one (e.g. Atheon's Mars + Venus plate bots). */
+  private readonly entityMeshes = new Map<string, Mesh>();
+  private readonly grid: NavGrid;
+  private scenario: ScenarioState;
+  private accumulator = 0;
+  private lastTime: number | null = null;
 
   private constructor(
     private readonly renderer: WebGPURenderer,
     arena: ArenaDef,
+    private readonly config: EncounterMechanicsConfig,
+    markers: Marker[],
   ) {
+    this.grid = buildNavGrid(arena, 5);
+    const rally = markers.find((m) => m.id === 'rally');
+    if (!rally) throw new Error("Scene requires a 'rally' marker");
+    this.scenario = createScenarioState(config, rally.position);
+
     this.scene.background = new Color(0x1a1a1a);
 
-    const groundMaterial = new MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.9 });
-    for (const polygon of arena.walkable) this.scene.add(flatMesh(polygon, groundMaterial, 0));
+    this.groundMaterial = new MeshStandardMaterial({ color: GROUND_DEFAULT_COLOR, roughness: 0.9 });
+    for (const polygon of arena.walkable) this.scene.add(flatMesh(polygon, this.groundMaterial, 0));
 
     const obstacleMaterial = new MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
     for (const polygon of arena.obstacles) {
@@ -124,6 +228,34 @@ export class ArenaRenderer {
 
     const wallMaterial = new MeshStandardMaterial({ color: 0x555555 });
     for (const [a, b] of arena.walls) this.scene.add(wallMesh(a, b, wallMaterial));
+
+    for (const plateConfig of config.plates) {
+      const material = new MeshStandardMaterial({ color: PLATE_UNLIT_COLOR });
+      const geometry = new CircleGeometry(plateConfig.radius, 32);
+      geometry.rotateX(-Math.PI / 2);
+      const mesh = new Mesh(geometry, material);
+      mesh.position.set(plateConfig.position.x, PLATE_LIFT, plateConfig.position.y);
+      this.scene.add(mesh);
+      this.plateMaterials.set(plateConfig.id, material);
+    }
+
+    for (const marker of markers.filter((m) => m.id.startsWith('oracle-'))) {
+      const material = new MeshStandardMaterial({ color: MARKER_UNLIT_COLOR });
+      const mesh = new Mesh(new SphereGeometry(MARKER_RADIUS, 16, 16), material);
+      mesh.position.set(marker.position.x, MARKER_HEIGHT, marker.position.y);
+      this.scene.add(mesh);
+      this.markerMaterials.set(marker.id, material);
+    }
+
+    for (const entity of this.scenario.world.entities) {
+      const entityMaterial = new MeshStandardMaterial({ color: ENTITY_COLOR });
+      const mesh = new Mesh(
+        new CapsuleGeometry(ENTITY_RADIUS, ENTITY_LENGTH, 4, 8),
+        entityMaterial,
+      );
+      this.scene.add(mesh);
+      this.entityMeshes.set(entity.id, mesh);
+    }
 
     this.scene.add(new HemisphereLight(0xffffff, 0x444444, 1));
     const sun = new DirectionalLight(0xffffff, 1);
@@ -138,6 +270,8 @@ export class ArenaRenderer {
     const { elevation, setback } = overviewOffset(arena.height);
     this.camera.position.set(centerX, elevation, centerZ - setback);
     this.camera.lookAt(centerX, 0, centerZ);
+
+    this.applyScenario();
   }
 
   resize(width: number, height: number, dpr: number): void {
@@ -149,6 +283,8 @@ export class ArenaRenderer {
   }
 
   start(): void {
+    this.lastTime = null;
+    this.accumulator = 0;
     void this.renderer.setAnimationLoop(this.frame);
   }
 
@@ -161,7 +297,44 @@ export class ArenaRenderer {
     this.renderer.dispose();
   }
 
-  private readonly frame = (): void => {
+  private readonly frame = (now: number): void => {
+    const dt = this.lastTime === null ? 0 : Math.min(0.25, (now - this.lastTime) / 1000);
+    this.lastTime = now;
+    this.accumulator += dt;
+    // The `Math.min(0.25, dt)` clamp above is the main defense against a huge catch-up burst (e.g.
+    // after the tab was backgrounded), but MAX_TICKS_PER_FRAME is an explicit second guard so a
+    // future change to that clamp or to TICK_HZ can't silently reintroduce an unbounded loop here.
+    let ticksThisFrame = 0;
+    while (this.accumulator >= TICK_SECONDS && ticksThisFrame < MAX_TICKS_PER_FRAME) {
+      this.scenario = stepScenario(this.grid, this.config, this.scenario);
+      this.accumulator -= TICK_SECONDS;
+      ticksThisFrame++;
+    }
+    this.applyScenario();
     this.renderer.render(this.scene, this.camera);
   };
+
+  private applyScenario(): void {
+    for (const entity of this.scenario.world.entities) {
+      const mesh = this.entityMeshes.get(entity.id);
+      mesh?.position.set(entity.position.x, ENTITY_HEIGHT, entity.position.y);
+    }
+
+    for (const plateConfig of this.config.plates) {
+      const material = this.plateMaterials.get(plateConfig.id);
+      if (!material) continue;
+      const held = this.scenario.mechanics.plates[plateConfig.id]?.held ?? false;
+      material.color.setHex(plateColor(plateConfig.id, held));
+    }
+
+    const calloutConfig = this.config.callouts.find((c) => c.id === ORACLE_CALLOUT_ID);
+    const calloutState = this.scenario.mechanics.callouts[ORACLE_CALLOUT_ID];
+    const litIds = litMarkerIds(calloutConfig, calloutState);
+    for (const [id, material] of this.markerMaterials) {
+      material.color.setHex(litIds.has(id) ? MARKER_LIT_COLOR : MARKER_UNLIT_COLOR);
+    }
+
+    const inWinWindow = this.scenario.tick >= WIN_WINDOW_START_TICK;
+    this.groundMaterial.color.setHex(groundColor(this.scenario.mechanics, inWinWindow));
+  }
 }
