@@ -3,10 +3,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import '@raid-clinic/ui/arena.css';
 import { ArenaScene } from '@raid-clinic/ui/arena';
-import type { Marker } from '@raid-clinic/ui/arena';
+import type { Marker, EncounterLevelsContent } from '@raid-clinic/ui/arena';
 import { toArenaDef, toMechanicsConfig } from '@raid-clinic/sim';
 import type { EncounterArenaContent, EncounterMechanicsContent } from '@raid-clinic/sim';
-import type { EncounterLevelsContent } from '@raid-clinic/ui/arena';
 import Base from '../../../../layouts/Base.astro';
 
 // content/raids is the single source of truth. process.cwd() is the site root (apps/site).
@@ -19,7 +18,13 @@ const encounter = JSON.parse(readFileSync(encounterPath, 'utf8')) as EncounterAr
   EncounterLevelsContent & { markers: Marker[] };
 const arena = toArenaDef(encounter);
 const mechanics = toMechanicsConfig(encounter);
-const levels = encounter;
+const levels: EncounterLevelsContent = {
+  arena: {
+    levels: encounter.arena.levels,
+    stairs: encounter.arena.stairs,
+    hallBands: encounter.arena.hallBands,
+  },
+};
 ---
 
 <Base
