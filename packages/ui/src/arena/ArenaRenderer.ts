@@ -27,6 +27,7 @@ import {
   Shape,
   ShapeGeometry,
   SphereGeometry,
+  Vector3,
   WebGPURenderer,
 } from 'three/webgpu';
 import {
@@ -40,9 +41,19 @@ import {
   PLATE_LIT_COLORS,
   PLATE_UNLIT_COLOR,
   plateColor,
+  SCENE_BACKGROUND_COLOR,
   STAIR_COLOR,
+  SUN_COLOR,
   WALL_COLOR,
 } from './materials';
+import {
+  hallBandSegments,
+  heightAt,
+  toArenaLevels,
+  type ArenaLevels,
+  type EncounterLevelsContent,
+  type StairDef,
+} from './levels';
 import {
   createScenarioState,
   type ScenarioState,
@@ -57,8 +68,11 @@ export interface Marker {
   position: Point;
 }
 
-/** Wall fences get this height since no real wall-height data exists yet (a placeholder). */
-const WALL_HEIGHT = 1;
+/** Wall fences' real height, tuned visually against the dev server — taller than the entity
+ * (ENTITY_HEIGHT, below) so walls always read as a real barrier rather than a curb. */
+const WALL_HEIGHT = 6;
+/** Stair ramp mesh thickness, in sim units (perpendicular to its sloped top face). */
+const STAIR_THICKNESS = 1;
 /** Wall fence thickness, in sim units. */
 const WALL_THICKNESS = 2;
 /** Obstacle patches sit this far above the ground, to avoid z-fighting. */
@@ -129,12 +143,42 @@ function flatMesh(points: Point[], material: MeshStandardMaterial, height: numbe
   return mesh;
 }
 
-function wallMesh(a: Point, b: Point, material: MeshStandardMaterial): Mesh {
+function wallMesh(a: Point, b: Point, material: MeshStandardMaterial, baseHeight: number): Mesh {
   const length = distance(a, b);
   const geometry = new BoxGeometry(length, WALL_HEIGHT, WALL_THICKNESS);
   const mesh = new Mesh(geometry, material);
-  mesh.position.set((a.x + b.x) / 2, WALL_HEIGHT / 2, (a.y + b.y) / 2);
+  mesh.position.set((a.x + b.x) / 2, baseHeight + WALL_HEIGHT / 2, (a.y + b.y) / 2);
   mesh.rotation.y = -Math.atan2(b.y - a.y, b.x - a.x);
+  return mesh;
+}
+
+/** A simple average-of-vertices centroid — an approximation (not the exact area centroid), good
+ * enough for picking a representative point to look up an obstacle's local ground height. */
+function polygonCentroid(points: Point[]): Point {
+  let x = 0;
+  let y = 0;
+  for (const point of points) {
+    x += point.x;
+    y += point.y;
+  }
+  return { x: x / points.length, y: y / points.length };
+}
+
+/** A sloped box bridging a stairs ramp's two endpoints at their respective heights. Orients via a
+ * single quaternion rotation (mapping local +X to the real 3D direction from `a` to `b`, height
+ * difference included) rather than composing Euler angles, so the box's declared length always
+ * matches its true 3D span exactly, with no yaw/pitch-order ambiguity. */
+function stairMesh(stair: StairDef, material: MeshStandardMaterial): Mesh {
+  const direction = new Vector3(stair.b.x - stair.a.x, stair.h1 - stair.h0, stair.b.y - stair.a.y);
+  const slopeLength = direction.length();
+  const geometry = new BoxGeometry(slopeLength, STAIR_THICKNESS, stair.w);
+  const mesh = new Mesh(geometry, material);
+  mesh.position.set(
+    (stair.a.x + stair.b.x) / 2,
+    (stair.h0 + stair.h1) / 2,
+    (stair.a.y + stair.b.y) / 2,
+  );
+  mesh.quaternion.setFromUnitVectors(new Vector3(1, 0, 0), direction.clone().normalize());
   return mesh;
 }
 
@@ -145,6 +189,7 @@ export class ArenaRenderer {
     arena: ArenaDef,
     config: EncounterMechanicsConfig,
     markers: Marker[],
+    levelsContent: EncounterLevelsContent,
   ): Promise<ArenaRenderer> {
     const renderer = new WebGPURenderer({ canvas, antialias: true });
     try {
@@ -162,12 +207,15 @@ export class ArenaRenderer {
       renderer.dispose();
       throw new Error('No WebGPU device or WebGL2 context');
     }
-    return new ArenaRenderer(renderer, arena, config, markers);
+    return new ArenaRenderer(renderer, arena, config, markers, toArenaLevels(levelsContent));
   }
 
   private readonly scene = new Scene();
   private readonly camera: PerspectiveCamera;
-  private readonly groundMaterial: MeshStandardMaterial;
+  /** One material per ground mesh (each `arena.levels` entry plus each `hallBandSegments` band),
+   * alongside its own base (non-wipe/win) color so `applyScenario` can restore it when neither
+   * override applies. */
+  private readonly groundMaterials: Array<{ material: MeshStandardMaterial; baseColor: number }> = [];
   private readonly plateMaterials = new Map<string, MeshStandardMaterial>();
   private readonly markerMaterials = new Map<string, MeshStandardMaterial>();
   /** One capsule mesh per scripted entity, keyed by `Entity.id` — `scenario.ts` may script more
@@ -183,31 +231,57 @@ export class ArenaRenderer {
     arena: ArenaDef,
     private readonly config: EncounterMechanicsConfig,
     markers: Marker[],
+    private readonly levels: ArenaLevels,
   ) {
     this.grid = buildNavGrid(arena, 5);
     const rally = markers.find((m) => m.id === 'rally');
     if (!rally) throw new Error("Scene requires a 'rally' marker");
     this.scenario = createScenarioState(config, rally.position);
 
-    this.scene.background = new Color(0x1a1a1a);
+    this.scene.background = new Color(SCENE_BACKGROUND_COLOR);
 
-    this.groundMaterial = new MeshStandardMaterial({ color: GROUND_DEFAULT_COLOR, roughness: 0.9 });
-    for (const polygon of arena.walkable) this.scene.add(flatMesh(polygon, this.groundMaterial, 0));
-
-    const obstacleMaterial = new MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
-    for (const polygon of arena.obstacles) {
-      this.scene.add(flatMesh(polygon, obstacleMaterial, OBSTACLE_LIFT));
+    const addGround = (polygon: Point[], height: number): void => {
+      const color = levelColor(height);
+      const material = new MeshStandardMaterial({ color, roughness: 0.9 });
+      this.scene.add(flatMesh(polygon, material, height));
+      this.groundMaterials.push({ material, baseColor: color });
+    };
+    for (const level of this.levels.levels) addGround(level.polygon, level.height);
+    for (const band of hallBandSegments(arena.walkable[0], this.levels.hallBands)) {
+      addGround(band.polygon, band.height);
     }
 
-    const wallMaterial = new MeshStandardMaterial({ color: 0x555555 });
-    for (const [a, b] of arena.walls) this.scene.add(wallMesh(a, b, wallMaterial));
+    const stairMaterial = new MeshStandardMaterial({ color: STAIR_COLOR, roughness: 0.8 });
+    for (const stair of this.levels.stairs) this.scene.add(stairMesh(stair, stairMaterial));
+
+    const obstacleMaterial = new MeshStandardMaterial({ color: OBSTACLE_COLOR, roughness: 0.9 });
+    for (const polygon of arena.obstacles) {
+      const base = heightAt(
+        polygonCentroid(polygon),
+        this.levels.levels,
+        this.levels.stairs,
+        this.levels.hallBands,
+      );
+      this.scene.add(flatMesh(polygon, obstacleMaterial, base + OBSTACLE_LIFT));
+    }
+
+    const wallMaterial = new MeshStandardMaterial({ color: WALL_COLOR });
+    for (const [a, b] of arena.walls) {
+      const midpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const base = heightAt(midpoint, this.levels.levels, this.levels.stairs, this.levels.hallBands);
+      this.scene.add(wallMesh(a, b, wallMaterial, base));
+    }
+
+    const heightHere = (point: Point): number =>
+      heightAt(point, this.levels.levels, this.levels.stairs, this.levels.hallBands);
 
     for (const plateConfig of config.plates) {
       const material = new MeshStandardMaterial({ color: PLATE_UNLIT_COLOR });
       const geometry = new CircleGeometry(plateConfig.radius, 32);
       geometry.rotateX(-Math.PI / 2);
       const mesh = new Mesh(geometry, material);
-      mesh.position.set(plateConfig.position.x, PLATE_LIFT, plateConfig.position.y);
+      const base = heightHere(plateConfig.position);
+      mesh.position.set(plateConfig.position.x, base + PLATE_LIFT, plateConfig.position.y);
       this.scene.add(mesh);
       this.plateMaterials.set(plateConfig.id, material);
     }
@@ -215,7 +289,8 @@ export class ArenaRenderer {
     for (const marker of markers.filter((m) => m.id.startsWith('oracle-'))) {
       const material = new MeshStandardMaterial({ color: MARKER_UNLIT_COLOR });
       const mesh = new Mesh(new SphereGeometry(MARKER_RADIUS, 16, 16), material);
-      mesh.position.set(marker.position.x, MARKER_HEIGHT, marker.position.y);
+      const base = heightHere(marker.position);
+      mesh.position.set(marker.position.x, base + MARKER_HEIGHT, marker.position.y);
       this.scene.add(mesh);
       this.markerMaterials.set(marker.id, material);
     }
@@ -231,7 +306,7 @@ export class ArenaRenderer {
     }
 
     this.scene.add(new HemisphereLight(0xffffff, 0x444444, 1));
-    const sun = new DirectionalLight(0xffffff, 1);
+    const sun = new DirectionalLight(SUN_COLOR, 1.1);
     sun.position.set(arena.width * 0.3, arena.height * 0.9, -arena.height * 0.2);
     this.scene.add(sun);
 
@@ -290,7 +365,13 @@ export class ArenaRenderer {
   private applyScenario(): void {
     for (const entity of this.scenario.world.entities) {
       const mesh = this.entityMeshes.get(entity.id);
-      mesh?.position.set(entity.position.x, ENTITY_HEIGHT, entity.position.y);
+      const base = heightAt(
+        entity.position,
+        this.levels.levels,
+        this.levels.stairs,
+        this.levels.hallBands,
+      );
+      mesh?.position.set(entity.position.x, base + ENTITY_HEIGHT, entity.position.y);
     }
 
     for (const plateConfig of this.config.plates) {
@@ -308,6 +389,9 @@ export class ArenaRenderer {
     }
 
     const inWinWindow = this.scenario.tick >= WIN_WINDOW_START_TICK;
-    this.groundMaterial.color.setHex(groundColor(this.scenario.mechanics, inWinWindow));
+    const override = groundColor(this.scenario.mechanics, inWinWindow);
+    for (const { material, baseColor } of this.groundMaterials) {
+      material.color.setHex(override ?? baseColor);
+    }
   }
 }
