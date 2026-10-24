@@ -247,6 +247,9 @@ export class ArenaRenderer {
       this.groundMaterials.push({ material, baseColor: color });
     };
     for (const level of this.levels.levels) addGround(level.polygon, level.height);
+    // arena.walkable[0] is the "upper" hallway region by content-authoring convention (see
+    // encounter.json's arena.walkable ordering / the Arena Geometry sub-project's design doc) — the
+    // only one of the three walkable polygons that needs hallBands' depth-based terracing.
     for (const band of hallBandSegments(arena.walkable[0], this.levels.hallBands)) {
       addGround(band.polygon, band.height);
     }
