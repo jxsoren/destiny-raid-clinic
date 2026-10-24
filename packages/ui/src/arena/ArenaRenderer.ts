@@ -30,6 +30,20 @@ import {
   WebGPURenderer,
 } from 'three/webgpu';
 import {
+  ENTITY_COLOR,
+  groundColor,
+  levelColor,
+  litMarkerIds,
+  MARKER_LIT_COLOR,
+  MARKER_UNLIT_COLOR,
+  OBSTACLE_COLOR,
+  PLATE_LIT_COLORS,
+  PLATE_UNLIT_COLOR,
+  plateColor,
+  STAIR_COLOR,
+  WALL_COLOR,
+} from './materials';
+import {
   createScenarioState,
   type ScenarioState,
   stepScenario,
@@ -58,18 +72,6 @@ const MARKER_HEIGHT = 8;
 const ENTITY_LENGTH = 6;
 const ENTITY_RADIUS = 2;
 const ENTITY_HEIGHT = ENTITY_RADIUS + ENTITY_LENGTH / 2;
-
-const GROUND_DEFAULT_COLOR = 0x3a3a3a;
-const GROUND_WIPE_COLOR = 0x5a2626;
-const GROUND_WIN_COLOR = 0x2d5a2d;
-const PLATE_UNLIT_COLOR = 0x2a2a2a;
-const PLATE_LIT_COLORS: Record<string, number> = {
-  'mars-plate': 0xe0704f,
-  'venus-plate': 0xb6c95a,
-};
-const MARKER_UNLIT_COLOR = 0x444444;
-const MARKER_LIT_COLOR = 0xffffff;
-const ENTITY_COLOR = 0x8ad0ff;
 
 /** The single callout mechanic the scripted scenario lights markers up for. */
 const ORACLE_CALLOUT_ID = 'oracle-order';
@@ -108,35 +110,6 @@ export function overviewOffset(arenaHeight: number): { elevation: number; setbac
   const elevation = (arenaHeight * FRAME_MARGIN) / spanPerUnitHeight;
   const setback = elevation / Math.tan(angle);
   return { elevation, setback };
-}
-
-/** A plate's disc color for its current held state. Warns (and falls back to white) on an id with
- * no configured lit color — a content/renderer mismatch, not expected in normal operation. */
-export function plateColor(plateId: string, held: boolean): number {
-  if (!held) return PLATE_UNLIT_COLOR;
-  const lit = PLATE_LIT_COLORS[plateId];
-  if (lit === undefined) {
-    console.warn(`No lit color configured for plate "${plateId}"; falling back to white.`);
-    return 0xffffff;
-  }
-  return lit;
-}
-
-/** The ids of `calloutConfig`'s sequence values already correctly called, per `calloutState`. */
-export function litMarkerIds(
-  calloutConfig: SequenceCalloutConfig | undefined,
-  calloutState: SequenceCalloutState | undefined,
-): Set<string> {
-  if (!calloutConfig || !calloutState) return new Set();
-  return new Set(calloutConfig.sequence.slice(0, calloutState.nextIndex));
-}
-
-/** The ground's tint for the scenario's current outcome: wiped (red), a post-success win window
- * (green), or the default gray otherwise. */
-export function groundColor(mechanics: MechanicsState, inWinWindow: boolean): number {
-  if (mechanics.wiped) return GROUND_WIPE_COLOR;
-  if (inWinWindow) return GROUND_WIN_COLOR;
-  return GROUND_DEFAULT_COLOR;
 }
 
 function shapeFromPolygon(points: Point[]): Shape {
