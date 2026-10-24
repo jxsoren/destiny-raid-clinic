@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   clipPolygonByYRange,
+  type HallBand,
   hallBandSegments,
   heightAt,
-  toArenaLevels,
-  type HallBand,
   type LevelDef,
   type StairDef,
+  toArenaLevels,
 } from '../../src/arena/levels';
 
 const levels: LevelDef[] = [
@@ -22,9 +22,7 @@ const levels: LevelDef[] = [
   },
 ];
 
-const stairs: StairDef[] = [
-  { a: { x: 20, y: 5 }, b: { x: 30, y: 5 }, w: 4, h0: 0, h1: 2 },
-];
+const stairs: StairDef[] = [{ a: { x: 20, y: 5 }, b: { x: 30, y: 5 }, w: 4, h0: 0, h1: 2 }];
 
 const hallBands: HallBand[] = [
   { y: 100, height: 2 },
@@ -50,9 +48,16 @@ describe('heightAt', () => {
 
   it('prefers a stairs ramp over a level polygon it overlaps', () => {
     const overlappingLevel: LevelDef[] = [
-      { id: 'under-stair', height: 99, polygon: [
-        { x: 15, y: 0 }, { x: 35, y: 0 }, { x: 35, y: 10 }, { x: 15, y: 10 },
-      ] },
+      {
+        id: 'under-stair',
+        height: 99,
+        polygon: [
+          { x: 15, y: 0 },
+          { x: 35, y: 0 },
+          { x: 35, y: 10 },
+          { x: 15, y: 10 },
+        ],
+      },
     ];
     expect(heightAt({ x: 25, y: 5 }, overlappingLevel, stairs, [])).toBe(1);
   });

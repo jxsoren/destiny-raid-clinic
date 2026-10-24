@@ -31,6 +31,14 @@ import {
   WebGPURenderer,
 } from 'three/webgpu';
 import {
+  type ArenaLevels,
+  type EncounterLevelsContent,
+  hallBandSegments,
+  heightAt,
+  type StairDef,
+  toArenaLevels,
+} from './levels';
+import {
   ENTITY_COLOR,
   groundColor,
   levelColor,
@@ -46,14 +54,6 @@ import {
   SUN_COLOR,
   WALL_COLOR,
 } from './materials';
-import {
-  hallBandSegments,
-  heightAt,
-  toArenaLevels,
-  type ArenaLevels,
-  type EncounterLevelsContent,
-  type StairDef,
-} from './levels';
 import {
   createScenarioState,
   type ScenarioState,
@@ -215,7 +215,8 @@ export class ArenaRenderer {
   /** One material per ground mesh (each `arena.levels` entry plus each `hallBandSegments` band),
    * alongside its own base (non-wipe/win) color so `applyScenario` can restore it when neither
    * override applies. */
-  private readonly groundMaterials: Array<{ material: MeshStandardMaterial; baseColor: number }> = [];
+  private readonly groundMaterials: Array<{ material: MeshStandardMaterial; baseColor: number }> =
+    [];
   private readonly plateMaterials = new Map<string, MeshStandardMaterial>();
   private readonly markerMaterials = new Map<string, MeshStandardMaterial>();
   /** One capsule mesh per scripted entity, keyed by `Entity.id` — `scenario.ts` may script more
@@ -271,7 +272,12 @@ export class ArenaRenderer {
     const wallMaterial = new MeshStandardMaterial({ color: WALL_COLOR });
     for (const [a, b] of arena.walls) {
       const midpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-      const base = heightAt(midpoint, this.levels.levels, this.levels.stairs, this.levels.hallBands);
+      const base = heightAt(
+        midpoint,
+        this.levels.levels,
+        this.levels.stairs,
+        this.levels.hallBands,
+      );
       this.scene.add(wallMesh(a, b, wallMaterial, base));
     }
 

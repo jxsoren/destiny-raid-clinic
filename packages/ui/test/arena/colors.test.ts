@@ -60,7 +60,7 @@ describe('groundColor', () => {
     expect(groundColor(mechanicsState(), true)).toBe(0x2d5a2d);
   });
 
-  it('is null otherwise, so callers keep each ground mesh\'s own per-level color', () => {
+  it("is null otherwise, so callers keep each ground mesh's own per-level color", () => {
     expect(groundColor(mechanicsState(), false)).toBeNull();
   });
 });
