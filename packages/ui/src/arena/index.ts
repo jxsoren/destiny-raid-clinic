@@ -3,3 +3,5 @@
 
 export type { Marker } from './ArenaRenderer';
 export { ArenaScene, type ArenaSceneProps } from './ArenaScene';
+export { toArenaLevels } from './levels';
+export type { ArenaLevels, EncounterLevelsContent, HallBand, LevelDef, StairDef } from './levels';
