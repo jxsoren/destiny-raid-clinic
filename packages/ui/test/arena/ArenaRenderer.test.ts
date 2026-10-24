@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { overviewOffset } from '../../src/arena/ArenaRenderer';
+import { overviewOffset, shapeFromPolygon } from '../../src/arena/ArenaRenderer';
 
 describe('overviewOffset', () => {
   it('frames the real Atheon arena height with a visible ground span of height * 1.2', () => {
@@ -23,5 +23,19 @@ describe('overviewOffset', () => {
     const doubled = overviewOffset(2000);
     expect(doubled.elevation).toBeCloseTo(base.elevation * 2, 5);
     expect(doubled.setback).toBeCloseTo(base.setback * 2, 5);
+  });
+});
+
+describe('shapeFromPolygon', () => {
+  it('negates y so the -90° X-rotation used by flatMesh maps sim-y onto +Z, matching every other mesh builder', () => {
+    const shape = shapeFromPolygon([
+      { x: 1, y: 2 },
+      { x: 3, y: 4 },
+    ]);
+    const points = shape.getPoints();
+    expect(points[0].x).toBe(1);
+    expect(points[0].y).toBe(-2);
+    expect(points[1].x).toBe(3);
+    expect(points[1].y).toBe(-4);
   });
 });

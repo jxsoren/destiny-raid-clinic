@@ -131,7 +131,7 @@ export function overviewOffset(arenaHeight: number): { elevation: number; setbac
 // the overview camera) — but that rotation negates Y onto Z (local Y becomes world -Z). Building
 // the shape with Y negated up front cancels that out, so the net effect matches every other mesh
 // builder in this file: sim x -> world x, sim y -> world z, with no sign flip.
-function shapeFromPolygon(points: Point[]): Shape {
+export function shapeFromPolygon(points: Point[]): Shape {
   const shape = new Shape();
   shape.moveTo(points[0].x, -points[0].y);
   for (const point of points.slice(1)) shape.lineTo(point.x, -point.y);
