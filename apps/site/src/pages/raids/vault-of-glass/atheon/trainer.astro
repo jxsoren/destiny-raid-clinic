@@ -6,6 +6,7 @@ import { ArenaScene } from '@raid-clinic/ui/arena';
 import type { Marker } from '@raid-clinic/ui/arena';
 import { toArenaDef, toMechanicsConfig } from '@raid-clinic/sim';
 import type { EncounterArenaContent, EncounterMechanicsContent } from '@raid-clinic/sim';
+import type { EncounterLevelsContent } from '@raid-clinic/ui/arena';
 import Base from '../../../../layouts/Base.astro';
 
 // content/raids is the single source of truth. process.cwd() is the site root (apps/site).
@@ -14,14 +15,22 @@ const encounterPath = join(
   '../../content/raids/vault-of-glass/encounters/07-atheon/encounter.json',
 );
 const encounter = JSON.parse(readFileSync(encounterPath, 'utf8')) as EncounterArenaContent &
-  EncounterMechanicsContent & { markers: Marker[] };
+  EncounterMechanicsContent &
+  EncounterLevelsContent & { markers: Marker[] };
 const arena = toArenaDef(encounter);
 const mechanics = toMechanicsConfig(encounter);
+const levels = encounter;
 ---
 
 <Base
   title="Atheon, Time's Conflux · Trainer"
   description="Practice Atheon, Time's Conflux."
 >
-  <ArenaScene client:only="solid-js" arena={arena} mechanics={mechanics} markers={encounter.markers} />
+  <ArenaScene
+    client:only="solid-js"
+    arena={arena}
+    mechanics={mechanics}
+    markers={encounter.markers}
+    levels={levels}
+  />
 </Base>
