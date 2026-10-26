@@ -51,9 +51,40 @@
   height: 24px;
   border-left: 2px dotted var(--brass);
 }
-.raid-director__encounter-link {
+.raid-director__node {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  background: transparent;
   color: var(--ink);
-  text-underline-offset: 5px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.raid-director__node:hover {
+  outline: 2px solid var(--frame);
+}
+.raid-director__availability {
+  display: block;
+  margin-top: 8px;
+}
+.raid-director__details {
+  margin-top: 24px;
+}
+.raid-director__details > .t-status {
+  margin-top: 24px;
+  color: var(--brass);
+}
+.raid-director__details h3 {
+  font-size: 24px;
+  line-height: 1.15;
+}
+.raid-director__hint {
+  color: var(--muted);
+  font-size: 14px;
 }
 .raid-director__path .t-status,
 .raid-director__empty {

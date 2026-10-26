@@ -1,6 +1,9 @@
+import solid from 'vite-plugin-solid';
 import { defineConfig } from 'vitest/config';
 
-// Unit tests for build-time site logic (no DOM). Browser tests live in e2e/ (Playwright).
+// Build-time tests use Node; component tests opt into jsdom with a file annotation.
 export default defineConfig({
-  test: { environment: 'node', include: ['test/**/*.test.ts'] },
+  plugins: [solid({ hot: false })],
+  resolve: { conditions: ['development', 'browser'] },
+  test: { environment: 'node', include: ['test/**/*.test.{ts,tsx}'] },
 });
