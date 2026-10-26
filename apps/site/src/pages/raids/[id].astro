@@ -1,9 +1,7 @@
 ---
-// Minimal raid page so the Director has somewhere to go. Plan 4 replaces it with the
-// space-scene raid page (spec §5.2).
 import { join } from 'node:path';
-import { Divider, ItemHeader, PerkNode } from '@raid-clinic/ui';
-import { BackPrompt } from '../../components/BackPrompt';
+import '@raid-clinic/ui/space.css';
+import { RaidDirector } from '../../components/RaidDirector';
 import trainers from '../../data/trainers.json';
 import Base from '../../layouts/Base.astro';
 import { loadRaids, type RaidSummary } from '../../lib/raids';
@@ -17,67 +15,7 @@ const { raid } = Astro.props as { raid: RaidSummary };
 ---
 
 <Base title={`${raid.name} · Raid Clinic`} description={`${raid.name} encounter guides and trainers.`}>
-  <main class="raid">
-    <ItemHeader tile="logo" name={raid.name} type={`${raid.location} · Raid`} flavor={raid.tagline || undefined} />
-    <Divider />
-    {
-      raid.encounters.length === 0 ? (
-        <p class="t-type">Encounters, guides and trainers for this raid are on the way.</p>
-      ) : (
-        <ol class="raid__encounters">
-          {raid.encounters.map((e) => (
-            <li>
-              {e.trainer ? (
-                <a href={`/raids/${raid.id}/${e.id}/trainer`} class="raid__encounter-link">
-                  <PerkNode state="playable" label={String(e.order).padStart(2, '0')} title={e.name} />
-                  <span class="t-label">{e.name}</span>
-                </a>
-              ) : (
-                <>
-                  <PerkNode
-                    state={e.guide ? 'guide' : 'soon'}
-                    label={String(e.order).padStart(2, '0')}
-                    title={e.name}
-                  />
-                  <span class="t-label">{e.name}</span>
-                </>
-              )}
-            </li>
-          ))}
-        </ol>
-      )
-    }
-    <a class="raid__back" href="/">← Back to raids</a>
-    <BackPrompt client:load />
+  <main>
+    <RaidDirector client:load raid={raid} />
   </main>
 </Base>
-
-<style>
-  .raid {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 48px 16px 120px;
-    display: grid;
-    gap: 24px;
-  }
-  .raid__encounters {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 14px;
-  }
-  .raid__encounters li {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-  .raid__encounter-link {
-    display: contents;
-    color: inherit;
-    text-decoration: none;
-  }
-  .raid__back {
-    color: var(--muted);
-  }
-</style>
