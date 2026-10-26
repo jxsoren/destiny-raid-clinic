@@ -2,7 +2,8 @@ import solid from 'vite-plugin-solid';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [solid()],
+  // Unit tests do not need HMR; its virtual refresh URL is invalid on Windows.
+  plugins: [solid({ hot: false })],
   resolve: { conditions: ['development', 'browser'] },
   test: {
     environment: 'jsdom',
