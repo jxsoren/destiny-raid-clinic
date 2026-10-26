@@ -12,18 +12,18 @@
 .raid-director__content {
   box-sizing: border-box;
   width: min(620px, 56%);
-  min-height: 100svh;
-  padding: 40px 4vw 130px;
+  min-height: calc(100svh - 80px);
+  padding: 32px 4vw;
   background: linear-gradient(90deg, var(--void) 65%, transparent);
 }
 .raid-director__back {
   display: inline-block;
-  margin-bottom: 48px;
+  margin-bottom: 32px;
   color: var(--muted);
   text-decoration: none;
 }
 .raid-director__encounters {
-  margin-top: 64px;
+  margin-top: 48px;
 }
 .raid-director__encounters > .t-status {
   color: var(--brass);
@@ -46,7 +46,7 @@
 .raid-director__path li + li::before {
   content: "";
   position: absolute;
-  left: 23px;
+  left: 31px;
   bottom: calc(100% - 12px);
   height: 24px;
   border-left: 2px dotted var(--brass);
@@ -90,10 +90,14 @@
 .raid-director__empty {
   color: var(--muted);
 }
-.raid-director .rc-prompts--floating {
-  position: fixed;
-  bottom: 24px;
-  left: 4vw;
+.raid-director__footer {
+  position: sticky;
+  bottom: 0;
+  box-sizing: border-box;
+  min-height: 80px;
+  padding: 24px 4vw;
+  background: var(--void);
+  z-index: 1;
 }
 @media (max-width: 700px) {
   .raid-director__space {
@@ -102,10 +106,10 @@
   }
   .raid-director__content {
     width: 100%;
-    padding: 24px 24px 130px;
+    padding: 24px;
     background: linear-gradient(0deg, var(--void) 40%, transparent);
   }
   .raid-director__encounters {
-    margin-top: 80px;
+    margin-top: 64px;
   }
 }

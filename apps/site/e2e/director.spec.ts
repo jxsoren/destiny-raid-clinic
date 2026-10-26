@@ -35,7 +35,7 @@ test('arrow keys move the selection between planets', async ({ page }) => {
 test('F opens the selected raid', async ({ page }) => {
   await page.keyboard.press('f');
   await expect(page).toHaveURL(/\/raids\/vault-of-glass\/$/);
-  await expect(page.getByText("Atheon, Time's Conflux")).toBeVisible();
+  await expect(page.getByRole('heading', { name: "Atheon, Time's Conflux" })).toBeVisible();
 });
 
 test('Enter on a focused planet button acts on that planet, not the selected one', async ({

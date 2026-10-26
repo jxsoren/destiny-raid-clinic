@@ -159,7 +159,9 @@ export function RaidDirector(props: { raid: RaidSummary }) {
           </Show>
         </section>
       </div>
-      <PromptBar variant="floating" prompts={prompts()} />
+      <div class="raid-director__footer">
+        <PromptBar variant="floating" prompts={prompts()} />
+      </div>
     </div>
   );
 }
