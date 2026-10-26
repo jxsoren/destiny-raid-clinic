@@ -143,7 +143,7 @@ Invoke `/writing-plans`. Pass `ISSUE_ANALYSIS.md` as the design doc input:
 - **Proposed Changes** → Task list
 - **Open Questions** → Non-goals / constraints
 
-The plan is saved to `.claude/docs/plans/active/<feature-slug>/YYYY-MM-DD-<feature-name>-plan.md`.
+The plan is saved to `.claude/docs/plans/active/<feature-slug>/YYYY-MM-DD-<feature-slug>.md`.
 
 Wait for the plan to reach **APPROVED**. If `/writing-plans` returns **DRAFT**, surface issues and wait for resolution.
 
