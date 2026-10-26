@@ -53,7 +53,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Install Playwright Chromium
-        timeout-minutes: 8
+        timeout-minutes: 15
         run: |
           if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
             cmd="install-deps chromium"
@@ -61,7 +61,7 @@ jobs:
             cmd="install --with-deps chromium"
           fi
           for attempt in 1 2 3; do
-            timeout 150 pnpm --filter site exec playwright $cmd && exit 0
+            timeout 600 pnpm --filter site exec playwright $cmd && exit 0
             echo "playwright $cmd attempt $attempt failed or stalled; retrying"
           done
           exit 1
