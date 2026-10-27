@@ -1,0 +1,115 @@
+.raid-director {
+  position: relative;
+  min-height: 100svh;
+  isolation: isolate;
+}
+.raid-director__space {
+  position: fixed;
+  inset: 0 0 0 38%;
+  z-index: -1;
+  pointer-events: none;
+}
+.raid-director__content {
+  box-sizing: border-box;
+  width: min(620px, 56%);
+  min-height: calc(100svh - 80px);
+  padding: 32px 4vw;
+  background: linear-gradient(90deg, var(--void) 65%, transparent);
+}
+.raid-director__back {
+  display: inline-block;
+  margin-bottom: 32px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.raid-director__encounters {
+  margin-top: 48px;
+}
+.raid-director__encounters > .t-status {
+  color: var(--brass);
+}
+.raid-director__encounters h2 {
+  margin-bottom: 28px;
+}
+.raid-director__path {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.raid-director__path li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 0;
+}
+.raid-director__path li + li::before {
+  content: "";
+  position: absolute;
+  left: 31px;
+  bottom: calc(100% - 12px);
+  height: 24px;
+  border-left: 2px dotted var(--brass);
+}
+.raid-director__node {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.raid-director__node:hover {
+  outline: 2px solid var(--frame);
+}
+.raid-director__availability {
+  display: block;
+  margin-top: 8px;
+}
+.raid-director__details {
+  margin-top: 24px;
+}
+.raid-director__details > .t-status {
+  margin-top: 24px;
+  color: var(--brass);
+}
+.raid-director__details h3 {
+  font-size: 24px;
+  line-height: 1.15;
+}
+.raid-director__hint {
+  color: var(--muted);
+  font-size: 14px;
+}
+.raid-director__path .t-status,
+.raid-director__empty {
+  color: var(--muted);
+}
+.raid-director__footer {
+  position: sticky;
+  bottom: 0;
+  box-sizing: border-box;
+  min-height: 80px;
+  padding: 24px 4vw;
+  background: var(--void);
+  z-index: 1;
+}
+@media (max-width: 700px) {
+  .raid-director__space {
+    inset: 0 0 50% 25%;
+    opacity: 0.6;
+  }
+  .raid-director__content {
+    width: 100%;
+    padding: 24px;
+    background: linear-gradient(0deg, var(--void) 40%, transparent);
+  }
+  .raid-director__encounters {
+    margin-top: 64px;
+  }
+}
