@@ -24,9 +24,9 @@ see_also:
   - name: /analyze-issue
     when: "no ISSUE_ANALYSIS.md exists yet"
   - name: /writing-plans
-    when: "invoked internally to produce the implementation plan"
+    when: "invoked internally to produce the implementation plan; not in this repo, Step 6 has an inline fallback"
   - name: /executing-plans
-    when: "invoked internally to execute the plan"
+    when: "invoked internally to execute the plan; not in this repo, Step 7 has an inline fallback"
   - name: /review-code
     when: "invoked internally after implementation, before the UI preview/report steps"
 ---
@@ -137,7 +137,7 @@ git worktree add tmp/worktrees/<branch-slug> <branch-name>
 
 ## Step 6 — Write the Plan
 
-Invoke `/writing-plans`. Pass `ISSUE_ANALYSIS.md` as the design doc input:
+If `/writing-plans` is available, invoke it. Pass `ISSUE_ANALYSIS.md` as the design doc input:
 - **Issue Summary** → Goal
 - **Affected Areas** → Reference files
 - **Proposed Changes** → Task list
@@ -147,12 +147,47 @@ The plan is saved to `.claude/docs/plans/active/<feature-slug>/YYYY-MM-DD-<featu
 
 Wait for the plan to reach **APPROVED**. If `/writing-plans` returns **DRAFT**, surface issues and wait for resolution.
 
+### Fallback: `/writing-plans` is not installed
+
+Neither `/writing-plans` nor `/executing-plans` ships in this repo; they come from the developer's own setup. If invoking it fails with an unknown-skill error, don't stop and don't invent a skill. Write the plan inline, in the same file path, in this shape:
+
+```markdown
+# Plan: <feature name> (#<number>)
+
+Status: DRAFT
+
+## Goal
+<Issue Summary, 1 to 3 sentences>
+
+## Reference files
+<Affected Areas: path, why>
+
+## Tasks
+- [ ] 1. `path/to/file` : <change, and how it will be checked>
+- [ ] 2. ...
+- [ ] Final: run `just check` (or the CI steps that run locally) and fix what it finds.
+
+## Non-goals and constraints
+<Open Questions, plus anything this change must not touch>
+```
+
+Each task is one small change that can be checked on its own (a test, a command, or a screenshot). Order them so the tests that prove the change come with it, not at the end. Show the plan to the user, set `Status: APPROVED` only after they agree, and note in the final report that the inline fallback was used.
+
 ## Step 7 — Execute the Plan
 
-Invoke `/executing-plans` with the approved plan. Follow the skill exactly:
+If `/executing-plans` is available, invoke it with the approved plan and follow the skill exactly:
 - Pause at every Review checkpoint and wait for user feedback
 - Mark tasks `[x]` as they complete
 - Don't guess through blockers — stop and ask
+
+### Fallback: `/executing-plans` is not installed
+
+Work the inline plan the same way by hand:
+- Do the tasks in order, one at a time, in the worktree.
+- After each task, run what the task said would check it, then mark it `[x]` in the plan file.
+- After every second task, or after any task that touches shared code, stop and show the user what changed so far, and wait for their feedback. That is the Review checkpoint.
+- If a task turns out to be wrong or blocked, stop and ask. Don't work around it silently, and don't change the plan without telling the user.
+- Commit when a task or a pair of tasks is green, with messages that name the issue number.
 
 ## Step 8 — Clean Up ISSUE_ANALYSIS.md
 
@@ -295,6 +330,7 @@ gh issue close <number> --comment "Fixed in #<pr-number>."
 - **Worktree on the existing branch** — do not create a new branch; `/analyze-issue` already created it.
 - **Reuse existing worktrees** — never fail if one exists; resume instead.
 - **If `/writing-plans` returns DRAFT** — surface blockers, do not proceed.
-- **At any Review checkpoint in `/executing-plans`** — stop and wait.
+- **At any Review checkpoint in `/executing-plans`** (or the fallback's checkpoints) — stop and wait.
+- **Missing `/writing-plans` or `/executing-plans` is not a blocker** — use the inline fallbacks in Steps 6 and 7, and say so in the report.
 - **Override is a last resort** — if confidence is overridden, note unresolved questions in the plan's Non-goals.
 - **Don't skip Step 8.1** — even a quick review catches issues before they reach the PR; Must Fix findings need explicit user acknowledgment, not silent pass-through.
