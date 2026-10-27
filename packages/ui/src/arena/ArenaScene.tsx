@@ -5,11 +5,13 @@
 import type { ArenaDef, EncounterMechanicsConfig } from '@raid-clinic/sim';
 import { createSignal, onCleanup, onMount, Show } from 'solid-js';
 import type { ArenaRenderer, Marker } from './ArenaRenderer';
+import type { EncounterLevelsContent } from './levels';
 
 export interface ArenaSceneProps {
   arena: ArenaDef;
   mechanics: EncounterMechanicsConfig;
   markers: Marker[];
+  levels: EncounterLevelsContent;
 }
 
 type Mode = 'loading' | 'live' | 'error';
@@ -31,7 +33,7 @@ export function ArenaScene(props: ArenaSceneProps) {
     const target = canvas;
     import('./ArenaRenderer')
       .then(({ ArenaRenderer }) =>
-        ArenaRenderer.create(target, props.arena, props.mechanics, props.markers),
+        ArenaRenderer.create(target, props.arena, props.mechanics, props.markers, props.levels),
       )
       .then((r) => {
         if (disposed) {

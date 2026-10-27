@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import '@raid-clinic/ui/arena.css';
 import { ArenaScene } from '@raid-clinic/ui/arena';
-import type { Marker } from '@raid-clinic/ui/arena';
+import type { Marker, EncounterLevelsContent } from '@raid-clinic/ui/arena';
 import { toArenaDef, toMechanicsConfig } from '@raid-clinic/sim';
 import type { EncounterArenaContent, EncounterMechanicsContent } from '@raid-clinic/sim';
 import Base from '../../../../layouts/Base.astro';
@@ -14,14 +14,28 @@ const encounterPath = join(
   '../../content/raids/vault-of-glass/encounters/07-atheon/encounter.json',
 );
 const encounter = JSON.parse(readFileSync(encounterPath, 'utf8')) as EncounterArenaContent &
-  EncounterMechanicsContent & { markers: Marker[] };
+  EncounterMechanicsContent &
+  EncounterLevelsContent & { markers: Marker[] };
 const arena = toArenaDef(encounter);
 const mechanics = toMechanicsConfig(encounter);
+const levels: EncounterLevelsContent = {
+  arena: {
+    levels: encounter.arena.levels,
+    stairs: encounter.arena.stairs,
+    hallBands: encounter.arena.hallBands,
+  },
+};
 ---
 
 <Base
   title="Atheon, Time's Conflux · Trainer"
   description="Practice Atheon, Time's Conflux."
 >
-  <ArenaScene client:only="solid-js" arena={arena} mechanics={mechanics} markers={encounter.markers} />
+  <ArenaScene
+    client:only="solid-js"
+    arena={arena}
+    mechanics={mechanics}
+    markers={encounter.markers}
+    levels={levels}
+  />
 </Base>

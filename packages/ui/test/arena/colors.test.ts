@@ -1,6 +1,6 @@
 import type { MechanicsState } from '@raid-clinic/sim';
 import { describe, expect, it, vi } from 'vitest';
-import { groundColor, litMarkerIds, plateColor } from '../../src/arena/ArenaRenderer';
+import { groundColor, litMarkerIds, plateColor } from '../../src/arena/materials';
 
 function mechanicsState(overrides: Partial<MechanicsState> = {}): MechanicsState {
   return {
@@ -60,7 +60,7 @@ describe('groundColor', () => {
     expect(groundColor(mechanicsState(), true)).toBe(0x2d5a2d);
   });
 
-  it('is the default color otherwise', () => {
-    expect(groundColor(mechanicsState(), false)).toBe(0x3a3a3a);
+  it("is null otherwise, so callers keep each ground mesh's own per-level color", () => {
+    expect(groundColor(mechanicsState(), false)).toBeNull();
   });
 });
