@@ -51,6 +51,11 @@ describe('createSessionState', () => {
     // Player holds mars-plate; a bot should cover venus-plate (the only "other" plate).
     expect(state.world.entities).toHaveLength(2);
   });
+
+  it('spawns a bot for every plate when the player plays caller (not yet selectable in the UI, but the logic must stay correct)', () => {
+    const state = createSessionState(twoPlateConfig, rally, 'caller');
+    expect(state.world.entities).toHaveLength(1 + twoPlateConfig.plates.length);
+  });
 });
 
 describe('stepSession', () => {

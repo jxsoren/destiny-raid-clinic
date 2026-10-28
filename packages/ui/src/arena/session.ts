@@ -32,6 +32,8 @@ export interface SessionState {
   world: World;
   mechanics: MechanicsState;
   playerRole: PlayerRole;
+  /** Whether the one-time plate-bot move orders have already been issued. */
+  ordersIssued: boolean;
 }
 
 /** The plates a placeholder bot must cover: every plate when the player plays 'caller' (not yet
@@ -61,6 +63,7 @@ export function createSessionState(
     world: createWorld([player, ...bots], 1),
     mechanics: createMechanicsState(config),
     playerRole,
+    ordersIssued: false,
   };
 }
 
@@ -81,10 +84,11 @@ function placeholderCalloutEvents(
 
 /**
  * Advances the session by one tick: the player is steered by `playerInput` (a zero vector if no
- * keys are held); each plate-bot is issued its one-time `moveOrders` destination on the session's
- * first tick only (`world.tick === 0`, mirroring scenario.ts's own "issue once" pattern) and never
- * re-issued; the placeholder callout logic runs only when the player plays `'plate'` (when `'caller'`
- * becomes playable in 4c, the player submits their own callouts instead, so this is skipped).
+ * keys are held); each plate-bot is issued its one-time `moveOrders` destination exactly once,
+ * tracked via `state.ordersIssued` (a structural invariant of the session's own state, rather than
+ * inferred from the engine's `World.tick`) and never re-issued; the placeholder callout logic runs
+ * only when the player plays `'plate'` (when `'caller'` becomes playable in 4c, the player submits
+ * their own callouts instead, so this is skipped).
  */
 export function stepSession(
   grid: NavGrid,
@@ -94,7 +98,7 @@ export function stepSession(
 ): SessionState {
   const botPlates = platesForBots(config, state.playerRole);
   const moveOrders: Record<string, Point> | undefined =
-    state.world.tick === 0 && botPlates.length > 0
+    !state.ordersIssued && botPlates.length > 0
       ? Object.fromEntries(botPlates.map((plate, index) => [`plate-bot-${index}`, plate.position]))
       : undefined;
 
@@ -113,5 +117,10 @@ export function stepSession(
     SESSION_TICK_SECONDS,
   );
 
-  return { world, mechanics, playerRole: state.playerRole };
+  return {
+    world,
+    mechanics,
+    playerRole: state.playerRole,
+    ordersIssued: state.ordersIssued || moveOrders !== undefined,
+  };
 }
