@@ -19,7 +19,7 @@ h1 b{font-weight:700}
 
 /* game viewport */
 .game{position:relative;aspect-ratio:16/9;max-width:100%;background:#05070a;overflow:hidden;container-type:inline-size;border:1px solid var(--line);user-select:none;-webkit-user-select:none}
-@media (max-width:720px){.game{aspect-ratio:4/5}}
+@media (max-width:720px){.game{aspect-ratio:5/7}}
 .game canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
 .hud{position:absolute;inset:0;pointer-events:none;font-size:clamp(10px,1.05cqw,14px);text-shadow:0 1px 2px rgba(0,0,0,.8)}
 .hud > *{position:absolute}
@@ -104,10 +104,29 @@ button.ip{pointer-events:auto;cursor:pointer;touch-action:none}
 @container (max-width:700px){
   .feed,.team{display:none}
   .radar{width:18cqw}
-  .tracker{top:calc(3% + 12cqw);max-width:60cqw}
+  /* tracker: just the objectives, under the radar, with the counts on their own line so nothing overlaps */
+  .tracker{top:calc(3% + 56px);max-width:62cqw}
+  .tracker .act,.tracker .enc{display:none}
+  .tracker li{grid-template-columns:.9em minmax(0,1fr)}
+  .tracker li span{grid-column:2}
+  .tracker li span:empty{display:none}
   .boss{width:84cqw;bottom:16%}
   .buffs{max-width:70cqw}
+  /* the banner drops below the tracker and loses its rules; the prompt clears the boss bar */
+  .announce{top:30%}
   .announce .a1{font-size:1.5em}
+  .announce .a1::before,.announce .a1::after{display:none}
+  .interact{bottom:27%}
+  /* the seat picker has to fit the panel: smaller title, no intro paragraph */
+  .ocard{gap:.7em}
+  .ocard h2{font-size:1.35em;letter-spacing:.05em}
+  .ocard h2 br{display:none}
+  .ocard h2 b{margin-right:.3em}
+  .ocard > p:not(.why),.ocard > .k:not([style]){display:none} /* the wipe and win kickers carry a color, keep them */
+  .ocard .why{font-size:.95em}
+  .seats{gap:.4em}
+  .seat{padding:.55em .7em}
+  .overlay{padding:4.5cqw}
 }
 
 /* overlay screens */
@@ -170,4 +189,9 @@ section > p{color:var(--muted);max-width:72ch;margin:0 0 18px}
 .tier p{margin:0;color:var(--muted);font-size:14px}
 .tier span{font:12px var(--mono);color:var(--boss)}
 .note{font-size:12.5px;color:var(--muted);margin-top:14px;max-width:80ch}
+@media (max-width:520px){
+  .tools{display:grid;grid-template-columns:1fr 1fr}
+  .tools .btn{padding:.7em .4em;letter-spacing:.08em;font-size:.82em}
+  .tools .btn:last-child{grid-column:1/-1}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
