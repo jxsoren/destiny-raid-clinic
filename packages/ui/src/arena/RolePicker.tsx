@@ -1,6 +1,5 @@
-// A small role-selection overlay shown before a live Atheon session starts. "Caller" is disabled —
-// it has no input mechanism until a later sub-project ships the chat overlay it depends on. See
-// docs/superpowers/specs/2026-10-27-atheon-movement-camera-foundation-design.md.
+// A small role-selection overlay shown before a live Atheon session starts. See
+// docs/superpowers/specs/2026-10-28-atheon-chat-callout-input-design.md.
 import type { PlayerRole } from './session';
 
 export interface RolePickerProps {
@@ -14,8 +13,8 @@ export function RolePicker(props: RolePickerProps) {
       <button type="button" onClick={() => props.onSelect('plate')}>
         Plate Holder
       </button>
-      <button type="button" disabled title="Coming in a later update">
-        Caller (coming soon)
+      <button type="button" onClick={() => props.onSelect('caller')}>
+        Caller
       </button>
     </div>
   );
