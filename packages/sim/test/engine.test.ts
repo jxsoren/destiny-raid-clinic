@@ -169,6 +169,14 @@ describe('step with moveDirect', () => {
     expect(moved.position).toEqual({ x: 45, y: 45 });
   });
 
+  it('clears an in-flight path when moveDirect takes over mid-path', () => {
+    const entity = { id: 'bot-1', position: { x: 10, y: 10 }, path: [{ x: 50, y: 10 }], speed: 30 };
+    let world = createWorld([entity], 1);
+    world = step(world, grid, { moveDirect: { 'bot-1': { dx: 1, dy: 0 } } });
+    const moved = world.entities[0];
+    expect(moved.path).toEqual([]);
+  });
+
   it('prefers a moveOrders destination over a simultaneous moveDirect for the same entity', () => {
     const entity = { id: 'bot-1', position: { x: 10, y: 10 }, path: [], speed: 30 };
     let world = createWorld([entity], 1);
