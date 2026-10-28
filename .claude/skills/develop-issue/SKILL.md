@@ -229,22 +229,33 @@ Facts this step relies on (each one cost a failed attempt to learn):
 4. **Look at `preview.png` before posting.** If it doesn't show the change, adjust the clicks or duration and record again.
 5. A "before" capture from the base branch is optional. Only do it when the difference is hard to describe in words.
 
-### 8.5b — Upload and post (Claude in Chrome)
+### 8.5b — Upload and post
 
-Use Claude in Chrome with the user signed in to GitHub. Check it is paired first: `list_connected_browsers` must return a browser. If it returns none, stop and tell the user what is needed (install the Claude in Chrome extension, open its side panel and sign in with the same account); don't improvise. Things that look like workarounds and are not:
-- The desktop app's built-in browser can be signed in to GitHub, but it has no file-upload tool and a pasted image does not register.
+The capture in 8.5a runs in Playwright's own headless Chromium, so it works the same whatever browser the person uses day to day. Only this upload step needs a browser that is signed in to GitHub as the user, and there are two routes. Use whichever is available; if neither is, stop and tell the user what to set up.
+
+| Route | Browsers | Check it is ready |
+|---|---|---|
+| **Claude in Chrome** (extension) | Chrome only | `list_connected_browsers` returns a browser |
+| **Playwright MCP** | Chrome, Firefox, WebKit or Edge, chosen by the MCP server's `--browser` option | `browser_navigate` to the PR, then `browser_evaluate` on `() => document.querySelector('meta[name="user-login"]')?.content` returns the user's login |
+
+**Setting up the Playwright MCP route for Firefox** (one time, by the user): run the MCP server with `--browser firefox`. Its window is visible (headed) and keeps a persistent profile by default, or one you choose with `--user-data-dir`. The user signs in to GitHub once in that window and it stays signed in. A profile can only be open in one browser at a time. Never sign in for the user. Its extension mode (attach to a running browser) is Chrome and Edge only, so it doesn't help for Firefox.
+
+**What does not work**, so it isn't retried:
+- The desktop app's built-in browser can be signed in to GitHub but has no file-upload tool, and a pasted image does not register.
 - Copying file bytes into a script by hand corrupts them (the image won't load).
 - Moving bytes between pages with `window.name` or `postMessage` is blocked by the safety checks as exfiltration. Don't try to route around that.
 
-Steps, in this order:
-1. **Open the PR page, wait about 3 seconds, then `find`** the new comment form's file input ("Add files") and its textarea. The first `find` straight after a navigation can fail with a "navigated to a different domain" message; just run it again. Refs go stale when the page re-renders, so re-`find` right before each use and never reuse refs from earlier steps.
-2. **Upload first.** `file_upload` the files to that input (`preview.png`, `preview.mp4`, any extra screenshots, under 10 MB combined). Don't click the input; that opens a native file picker the agent can't use.
-3. **Read the attachment markdown back** with a page script, not by eye:
+Steps, in this order (the tool names for each route are in brackets, Chrome first):
+1. **Open the PR page and wait about 3 seconds**, then locate the new comment form's file input, its textarea and its submit button [`find` | `browser_snapshot`]. The first `find` straight after a navigation can fail with a "navigated to a different domain" message; run it again. Refs go stale when the page re-renders, so locate again right before each use and never reuse refs from an earlier step.
+2. **Upload first** (`preview.png`, `preview.mp4`, any extra screenshots, under 10 MB combined):
+   - Chrome: `file_upload` to the file input ("Add files"). Don't click the input; that opens a native picker the agent can't use.
+   - Playwright: click the "Add files" button; the result shows a "File chooser" modal state. Then call `browser_file_upload` with the paths. It only accepts paths inside its allowed roots (the error lists them), so first copy the files into the `.playwright-mcp` folder under the MCP's workspace root, and delete those copies afterwards. Page tools such as `browser_evaluate` refuse to run while the chooser is still open.
+3. **Read the attachment markdown back** with a page script, not by eye [`javascript_tool` | `browser_evaluate`]:
    ```js
    document.getElementById('new_comment_field').value
    ```
    Each file appears as a line with a `https://github.com/user-attachments/assets/<id>` URL.
-4. **Write the final comment with `form_input`** (it sets the textarea value directly), reusing those exact URLs:
+4. **Write the final comment by setting the textarea's value directly** [`form_input` | `browser_type` or `browser_fill_form` with a target], reusing those exact URLs:
    ```markdown
    UI preview for #<number>: <one or two sentences on what to look for>.
 
@@ -252,14 +263,12 @@ Steps, in this order:
 
    <video-url>
    ```
-   The video URL goes **on its own line, bare** (no Markdown link syntax). That is what makes GitHub render a player. It replaces the whole textarea, which is why the upload comes first.
-5. **Post it.** `find` the submit button of the new comment form and click that one. The page also has an "Update comment" button for editing; make sure the label is "Comment".
+   The video URL goes **on its own line, bare** (no Markdown link syntax). That is what makes GitHub render a player. Setting the value replaces the whole textarea, which is why the upload comes first.
+5. **Post it.** Click the submit button of the new comment form. The page also has an "Update comment" button for editing; make sure the label is "Comment".
 
-**Never type into the page.** If a click on the textarea fails and you type anyway, the keystrokes hit GitHub's keyboard shortcuts: once that opened vscode.dev (asking to sign in) and two "Create codespace" pages. Use `form_input` for text. If anything unexpected opens, call `tabs_context_mcp`, close the stray tabs without clicking Allow or Create on them, and confirm with `gh` that nothing was changed.
+**Never type into the page.** If a click on the textarea fails and you send key presses anyway, the keystrokes hit GitHub's keyboard shortcuts: once that opened vscode.dev (asking to sign in) and two "Create codespace" pages. Only set values on a specific element. If anything unexpected opens, list the tabs, close the stray ones without clicking Allow or Create, and confirm with `gh` that nothing was changed.
 
-Close the tabs you opened when you are done.
-
-If Chrome isn't paired, say so and wait for the user to connect it. Never send the media to the user or leave it on their device; keep the captures in the scratch folder until the post is verified.
+Close the tabs you opened when you are done. If no signed-in route is ready, say so and wait for the user to set it up. Never send the media to the user or leave it on their device; keep the captures in the scratch folder until the post is verified.
 
 ### 8.5c — Verify, describe, clean up
 
