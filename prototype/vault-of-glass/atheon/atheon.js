@@ -1019,6 +1019,11 @@ async function initEngine(){
   };
   const vOr = VORC.map(o => { const g = mkOracle(0xdff4ef); g.position.copy(V(o.x, o.y, 4 + heightAt(o))); g.userData.base = 4 + heightAt(o); scene.add(g); return g; });
 
+  // The Vault, as everything solid built so far. A player in the destination chamber sees only the
+  // chamber, and a Vault player sees only the Vault; both are hidden by location each frame (see
+  // applyLocationView). Lights and the starfield stay, they belong to the whole scene.
+  const vaultStatic = scene.children.filter(o => (o.isMesh || o.isGroup || o.isLine) && o !== reflector && o !== roomShaft);
+
   // ---------- time-gate chamber ----------
   const room = new THREE.Group(); room.position.copy(V(ROOM.x, ROOM.y)); scene.add(room);
   const roomTopMat = new THREE.MeshPhysicalMaterial({color:0x121410, roughness:.35, metalness:.35, clearcoat:.7, clearcoatRoughness:.35, emissive:0xb6c95a, emissiveIntensity:0, envMapIntensity:.8});
@@ -1248,9 +1253,19 @@ async function initEngine(){
     camera.aspect = W2/H2;
     if (camera.aspect < 1.2){ camera.fov = 44; base0.set(10, 170, 150); look0.set(10, 0, -3); }
     else { camera.fov = 40; base0.set(18, 80, 100); look0.set(18, 2, -3); }
-    camera.updateProjectionMatrix(); pMat.uniforms.uScale.value = H2*pr*.5;
+    frameRoom(); camera.updateProjectionMatrix(); pMat.uniforms.uScale.value = H2*pr*.5;
   }
   const base0 = new THREE.Vector3(), look0 = new THREE.Vector3();
+  // Where the camera goes when you are in the destination chamber: same pitch as the Vault view, pulled in
+  // to fit the chamber. A narrow window needs more distance to fit its width.
+  const roomBase = new THREE.Vector3(), roomLook = new THREE.Vector3();
+  let camBlend = 0;
+  function frameRoom(){
+    const c = V(ROOM.x, ROOM.y), cx = c.x, cz = c.z, reach = ROOM.r/10 + 4;
+    const half = Math.tan(camera.fov*Math.PI/360) * camera.aspect;
+    const d = Math.max(46, reach / half);
+    roomLook.set(cx, 1, cz); roomBase.set(cx, 1 + d*.6, cz + d*.8);
+  }
   function applyTier(name){
     tierName = name; const t = TIERS[name], sh = t.shadow > 0;
     if (renderer.shadowMap.enabled !== sh){ renderer.shadowMap.enabled = sh; scene.traverse(o => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; ms.forEach(m => m.needsUpdate = true); }); }
@@ -1291,7 +1306,17 @@ async function initEngine(){
     ndc.set(px/r.width*2-1, -(py/r.height)*2+1); ray.setFromCamera(ndc, camera);
     if (ray.ray.intersectPlane(ground, hit)){ const s = toSim(hit); if (you.loc==='room' ? dist(s,ROOM) < ROOM.r : s.x < SIM_W) tap = s; }
   });
-  window.__resetScene = () => { supMeshes.forEach(m => scene.remove(m)); supMeshes.clear(); fxObjs.forEach(o => scene.remove(o.m)); fxObjs.length = 0; parts.length = 0; G.forEach(g => { g.lx = null; }); };
+  // One location at a time: in the destination chamber you see only the chamber, in the Vault only the Vault
+  // (the away team can't see the Vault, and the Vault can't see them). Spectators and the other phases see both.
+  function applyLocationView(){
+    const vOn = youSee('vault'), rOn = youSee('room');
+    for (const o of vaultStatic) o.visible = vOn;
+    reflector.visible = vOn && TIERS[tierName].refl > 0;
+    supMeshes.forEach(m => { m.visible = vOn; }); tracers.visible = vOn;
+    room.visible = rOn; roomShaft.visible = rOn;
+    dome.visible = dome.visible && rOn; relicMesh.visible = relicMesh.visible && rOn;
+  }
+  window.__resetScene = () => { camBlend = 0; supMeshes.forEach(m => scene.remove(m)); supMeshes.clear(); fxObjs.forEach(o => scene.remove(o.m)); fxObjs.length = 0; parts.length = 0; G.forEach(g => { g.lx = null; }); };
 
   // ---------- frame ----------
   const proj = new THREE.Vector3(), tmp = new THREE.Vector3();
@@ -1318,9 +1343,12 @@ async function initEngine(){
 
     // camera with shake
     shake *= Math.exp(-dt*4);
-    camera.position.copy(base0); camera.position.x += Math.sin(T*.13)*.8; camera.position.y += Math.sin(T*.11)*.5;
+    const toRoom = you && !watch && S.phase==='away' && you.loc==='room' ? 1 : 0;
+    camBlend += (toRoom - camBlend) * Math.min(1, dt*3.2);
+    const cb = camBlend*camBlend*(3 - 2*camBlend);
+    camera.position.lerpVectors(base0, roomBase, cb); camera.position.x += Math.sin(T*.13)*.8; camera.position.y += Math.sin(T*.11)*.5;
     if (shake > .01){ camera.position.x += (Math.random()-.5)*shake; camera.position.y += (Math.random()-.5)*shake; }
-    camera.lookAt(look0);
+    camera.lookAt(tmp.lerpVectors(look0, roomLook, cb));
 
     // Atheon animation
     const dps = S.phase==='dps', tele = S.phase==='teleport' || (S.phase==='away' && S.t < .8);
@@ -1428,9 +1456,10 @@ async function initEngine(){
       g.bubble.visible = p.detained; if (p.detained) g.bubble.material.uniforms.uI.value = 1 + 1.2*(p.bub/70);
       g.mark.visible = S.marked===p && S.detainT > 0; if (g.mark.visible) g.markM.opacity = .45 + .4*Math.sin(T*10);
       g.ringM.opacity = p.you ? 1 : .35; g.ring.scale.setScalar(p.you ? 1.35 : 1);
-      g.root.visible = !(p.loc==='room' && !active && S.phase!=='teleport');
+      const apart = !!(you && !watch && S.phase==='away' && p.loc !== you.loc); // in the other location
+      g.root.visible = !apart && !(p.loc==='room' && !active && S.phase!=='teleport');
       proj.copy(g.root.position); proj.y += 4.2; proj.project(camera);
-      const hidden = you && !watch && S.phase==='away' && p.loc==='room' && you.loc==='vault';
+      const hidden = apart;
       const show = !(proj.z > 1 || hidden);
       g.tag.style.display = show ? 'flex' : 'none';
       const vm = p.loc==='room' ? `<span style="display:inline-block;width:28px;height:3px;background:rgba(255,255,255,.2);position:relative;margin-left:4px"><span style="position:absolute;inset:0 auto 0 0;width:${Math.round(p.meter*100)}%;background:${p.meter>.7?'#ff6a55':'#9b7cff'}"></span></span>` : '';
@@ -1495,6 +1524,7 @@ async function initEngine(){
     mp.needsUpdate = true;
 
     grade.uniforms.uT.value = T;
+    applyLocationView();
     composer.render(dt);
   };
 }
@@ -1503,7 +1533,7 @@ async function initEngine(){
 // boot
 // =====================================================================
 // Tests set globalThis.__RAID_CLINIC_TEST__ to drive the simulation headless (see tests/).
-if (globalThis.__RAID_CLINIC_TEST__){ newState(); globalThis.__RAID_CLINIC_TEST__({start, update, state:() => S, you:() => you, spreadTags, interactPrompt, objectiveTarget, hold:v => { interactHeld = v; }}); return; }
+if (globalThis.__RAID_CLINIC_TEST__){ newState(); globalThis.__RAID_CLINIC_TEST__({start, update, state:() => S, you:() => you, spreadTags, youSee, interactPrompt, objectiveTarget, hold:v => { interactHeld = v; }}); return; }
 newState();
 showOverlay('start');
 initEngine().catch(err => { console.error(err); $('game').insertAdjacentHTML('beforeend','<div class="nogl">The 3D engine couldn’t start. This trainer needs WebGL and a connection to load its libraries.</div>'); });
