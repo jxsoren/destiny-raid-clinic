@@ -760,7 +760,7 @@ async function initEngine(){
   // ---------- materials ----------
   const BRASS = new THREE.MeshStandardMaterial({color:0xb08b4f, metalness:1, roughness:.34, normalMap:hammer, normalScale:new THREE.Vector2(.75,.75), envMapIntensity:1.35});
   const BRASS_DARK = BRASS.clone(); BRASS_DARK.color.set(0x6e5530); BRASS_DARK.roughness = .48;
-  const STONE = new THREE.MeshStandardMaterial({color:0x1a1d23, roughness:.85, metalness:.08, roughnessMap:roughTex, envMapIntensity:.5});
+  const STONE = new THREE.MeshStandardMaterial({color:0x2b3240, roughness:.85, metalness:.08, roughnessMap:roughTex, envMapIntensity:.5});
   const GLASS = new THREE.MeshPhysicalMaterial({color:0xd5f1ec, metalness:0, roughness:.22, transmission:.9, thickness:1.4, ior:1.45, attenuationColor:new THREE.Color(0x76d0c2), attenuationDistance:5, envMapIntensity:1.4});
   const emis = (c, i=1) => new THREE.MeshBasicMaterial({color:hdr(c,i)});
   const VERT_VIEW = `varying vec3 vN; varying vec3 vV; varying vec3 vP; void main(){ vec4 mv = modelViewMatrix*vec4(position,1.); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); vP = position; gl_Position = projectionMatrix*mv; }`;
@@ -781,7 +781,7 @@ async function initEngine(){
   });
 
   // ---------- lights ----------
-  scene.add(new THREE.HemisphereLight(0x8fa5c0, 0x0c0a08, .6));
+  scene.add(new THREE.HemisphereLight(0x9db2cc, 0x14110e, .85));
   const key = new THREE.DirectionalLight(0xdfe9ff, 2); key.position.set(-36, 80, 40);
   key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -.0004; key.shadow.normalBias = .03;
   Object.assign(key.shadow.camera, {left:-80, right:80, top:70, bottom:-70, near:10, far:260}); key.target.position.set(14, 0, -3);
@@ -804,16 +804,16 @@ async function initEngine(){
   const slab = (pts, top, depth) => { const g = new THREE.ExtrudeGeometry(shapeOf(pts), {depth, bevelEnabled:false}); g.rotateX(-Math.PI/2); g.translate(0, top - depth, 0); return g; };
   const lay = (mesh, y) => { mesh.rotation.x = -Math.PI/2; mesh.position.y = y; return mesh; };
   const outline = (pts, y, c, i, op=1) => { const g = new THREE.BufferGeometry().setFromPoints(pts.map(p => V(p.x, p.y, y))); const l = new THREE.LineLoop(g, new THREE.LineBasicMaterial({color:hdr(c,i), transparent:op < 1, opacity:op})); scene.add(l); return l; };
-  const DARK_GLASS = new THREE.MeshPhysicalMaterial({color:0x070a0f, roughness:.3, metalness:.1, clearcoat:1, clearcoatRoughness:.3, transparent:true, opacity:.8, envMapIntensity:.7});
-  const PLAT_GLASS = new THREE.MeshPhysicalMaterial({color:0x0e1218, roughness:.28, metalness:.35, clearcoat:1, clearcoatRoughness:.3, envMapIntensity:1});
-  const LOW_FLOOR = new THREE.MeshPhysicalMaterial({color:0x0b0d11, roughness:.45, metalness:.15, clearcoat:.5, clearcoatRoughness:.35, envMapIntensity:.5});
+  const DARK_GLASS = new THREE.MeshPhysicalMaterial({color:0x0f1621, roughness:.3, metalness:.1, clearcoat:1, clearcoatRoughness:.3, transparent:true, opacity:.8, envMapIntensity:.7});
+  const PLAT_GLASS = new THREE.MeshPhysicalMaterial({color:0x182130, roughness:.28, metalness:.35, clearcoat:1, clearcoatRoughness:.3, envMapIntensity:1});
+  const LOW_FLOOR = new THREE.MeshPhysicalMaterial({color:0x121820, roughness:.45, metalness:.15, clearcoat:.5, clearcoatRoughness:.35, envMapIntensity:.5});
 
   // main floor + hall: the hall climbs in two wide flights toward the top room (0 → 1 → 2)
   function clipY(pts, y0, y1){
     const cut = (pl, keep, yb) => { const out = []; for (let i=0;i<pl.length;i++){ const a = pl[i], b = pl[(i+1) % pl.length], ia = keep(a), ib = keep(b); if (ia) out.push(a); if (ia !== ib){ const t = (yb - a.y)/(b.y - a.y); out.push({x:a.x + (b.x-a.x)*t, y:yb}); } } return out; };
     let r = cut(pts, p => p.y >= y0, y0); if (r.length > 2) r = cut(r, p => p.y <= y1, y1); return r.length > 2 ? r : null;
   }
-  const HALL_GLASS = new THREE.MeshPhysicalMaterial({color:0x0b0e13, roughness:.3, metalness:.2, clearcoat:1, clearcoatRoughness:.3, envMapIntensity:.8});
+  const HALL_GLASS = new THREE.MeshPhysicalMaterial({color:0x141c28, roughness:.3, metalness:.2, clearcoat:1, clearcoatRoughness:.3, envMapIntensity:.8});
   const bands = [{y0:-1e4, y1:HALL.top, h:2}];
   const flight = (ya, yb, ha, hb, n) => { for (let k=0;k<n;k++) bands.push({y0:ya + (yb-ya)*k/n, y1:ya + (yb-ya)*(k+1)/n, h:ha + (hb-ha)*(k+.5)/n, step:true}); };
   flight(HALL.top, HALL.mid0, 2, 1, 5); bands.push({y0:HALL.mid0, y1:HALL.mid1, h:1}); flight(HALL.mid1, HALL.floor, 1, 0, 6);
@@ -826,7 +826,7 @@ async function initEngine(){
   // main floor: black glass over a live mirror
   const floorPts = clipY(ARENA.upper, HALL.floor, 1e4);
   { const b = new THREE.Mesh(slab(floorPts, -.03, 6), STONE); b.receiveShadow = true; scene.add(b); }
-  const reflector = lay(new Reflector(flatGeo(floorPts), {textureWidth:1024, textureHeight:1024, color:0x7d8896, clipBias:.003}), -.012); scene.add(reflector);
+  const reflector = lay(new Reflector(flatGeo(floorPts), {textureWidth:1024, textureHeight:1024, color:0x9aa8ba, clipBias:.003}), -.012); scene.add(reflector);
   const glassTop = lay(new THREE.Mesh(flatGeo(floorPts), DARK_GLASS), 0); glassTop.receiveShadow = true; scene.add(glassTop);
   outline(floorPts, .03, 0xc9a36a, 1.3, .7);
   // DPS platform: raised, polished
@@ -834,7 +834,7 @@ async function initEngine(){
   { const t = lay(new THREE.Mesh(flatGeo(ARENA.platform), PLAT_GLASS), 1.5); t.receiveShadow = true; scene.add(t); }
   outline(ARENA.platform, 1.53, 0xf2c46b, 2.2);
   const dpsGlowTex = new THREE.CanvasTexture(mkCanvas(128, (g,s) => { const gr = g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2); gr.addColorStop(0,'rgba(255,255,255,.9)'); gr.addColorStop(.6,'rgba(255,255,255,.25)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0,0,s,s); }));
-  const dpsGlow = lay(new THREE.Mesh(new THREE.PlaneGeometry(11, 15), new THREE.MeshBasicMaterial({map:dpsGlowTex, color:hdr(0xdff4ef,.9), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending})), 1.56);
+  const dpsGlow = lay(new THREE.Mesh(new THREE.PlaneGeometry(11, 15), new THREE.MeshBasicMaterial({map:dpsGlowTex, color:hdr(0xdff4ef,.5), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending})), 1.56);
   dpsGlow.position.x = V(DPS.x, DPS.y).x; dpsGlow.position.z = V(DPS.x, DPS.y).z; scene.add(dpsGlow);
   // plate level (sunken entrance area)
   { const b = new THREE.Mesh(slab(ARENA.lower, -2.53, 4), STONE); b.receiveShadow = true; scene.add(b); }
@@ -886,10 +886,8 @@ async function initEngine(){
     const seg = (ax,az,bx,bz) => { const n = 24; for (let i=0;i<n;i++){ const t1 = i/n, t2 = (i+1)/n, px = ax+(bx-ax)*t1, pz = az+(bz-az)*t1, qx = ax+(bx-ax)*t2, qz = az+(bz-az)*t2; if (ok(px,pz) && ok(qx,qz)) pts.push(px,.02,pz,qx,.02,qz); } };
     for (let r = 6; r < 60; r += 5.5) for (let k=0;k<8;k++){ const a1 = k/8*Math.PI*2 + Math.PI/8, a2 = (k+1)/8*Math.PI*2 + Math.PI/8; seg(c.x+Math.cos(a1)*r, c.z+Math.sin(a1)*r, c.x+Math.cos(a2)*r, c.z+Math.sin(a2)*r); }
     for (let k=0;k<16;k++){ const a = k/16*Math.PI*2 + Math.PI/16; seg(c.x+Math.cos(a)*4, c.z+Math.sin(a)*4, c.x+Math.cos(a)*80, c.z+Math.sin(a)*80); }
-    let seed = 7; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
-    for (let i=0;i<70;i++){ let x = -26 + rnd()*56, z = -40 + rnd()*66; for (let s2=0;s2<4;s2++){ const horiz = rnd() < .5, nx = horiz ? x + (rnd()<.5?-1:1)*(1.5+rnd()*4) : x, nz = horiz ? z : z + (rnd()<.5?-1:1)*(1.5+rnd()*4); seg(x,z,nx,nz); x = nx; z = nz; } }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts,3));
-    scene.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({color:hdr(0xc9a36a,1.2), transparent:true, opacity:.28})));
+    scene.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({color:hdr(0xc9a36a,1.2), transparent:true, opacity:.13})));
   }
 
   // ---------- light shafts + low fog ----------
@@ -923,8 +921,8 @@ async function initEngine(){
     const col = new THREE.Mesh(new THREE.CylinderGeometry(.9, 1.4, h, 6), STONE); col.position.y = h/2; col.castShadow = true; col.receiveShadow = true; g.add(col);
     const collar = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.15, .5, 6), BRASS); collar.position.y = h*.62; g.add(collar);
     for (let k=0;k<3;k++){ const strip = new THREE.Mesh(new THREE.BoxGeometry(.1, h*.86, .1), emis(0xdff4ef, 2.2)); const a = k/3*Math.PI*2 + Math.PI/6; strip.position.set(Math.cos(a)*1.02, h*.47, Math.sin(a)*1.02); g.add(strip); }
-    const cap = new THREE.Mesh(new THREE.OctahedronGeometry(.75), emis(0xdff4ef, 2.2)); cap.position.y = h + 1.4; g.add(cap);
-    const capGlow = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 12), fresnel(0xdff4ef, .45, 2, 0)); capGlow.position.y = h + 1.4; g.add(capGlow);
+    const cap = new THREE.Mesh(new THREE.OctahedronGeometry(.75), emis(0xdff4ef, 1.5)); cap.position.y = h + 1.4; g.add(cap);
+    const capGlow = new THREE.Mesh(new THREE.SphereGeometry(1.6, 16, 12), fresnel(0xdff4ef, .26, 2, 0)); capGlow.position.y = h + 1.4; g.add(capGlow);
     scene.add(g); spires.push({cap, capGlow, h});
   });
   const platGlyph = lay(new THREE.Mesh(new THREE.RingGeometry(2, 2.3, 6), emis(0xdff4ef, 2)), 1.58); platGlyph.position.x = V(DPS.x, DPS.y).x; platGlyph.position.z = V(DPS.x, DPS.y).z; scene.add(platGlyph);
@@ -1220,7 +1218,7 @@ async function initEngine(){
         gl_FragColor = bad ? vec4(0.,0.,0.,1.) : vec4(clamp(r, 0., 32.), 1.); }`,
   }));
   const gtao = new GTAOPass(scene, camera, 1280, 720); gtao.blendIntensity = .85; composer.addPass(gtao);
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1280, 720), .55, .5, 1.05); composer.addPass(bloom);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(1280, 720), .42, .45, 1.18); composer.addPass(bloom);
   composer.addPass(new OutputPass());
   const smaa = new SMAAPass(1280, 720); composer.addPass(smaa);
   const grade = new ShaderPass({
