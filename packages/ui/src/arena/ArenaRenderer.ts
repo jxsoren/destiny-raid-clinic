@@ -3,15 +3,7 @@
 // through the real engine/mechanics pipeline, a fixed angled-overview camera, basic lighting and a
 // fixed-timestep render loop. No real input yet — see
 // docs/superpowers/specs/2026-10-23-atheon-entities-mechanics-feedback-design.md for why.
-import type {
-  ArenaDef,
-  EncounterMechanicsConfig,
-  MechanicsState,
-  NavGrid,
-  Point,
-  SequenceCalloutConfig,
-  SequenceCalloutState,
-} from '@raid-clinic/sim';
+import type { ArenaDef, EncounterMechanicsConfig, NavGrid, Point } from '@raid-clinic/sim';
 import { buildNavGrid, distance } from '@raid-clinic/sim';
 import {
   BoxGeometry,
@@ -46,7 +38,6 @@ import {
   MARKER_LIT_COLOR,
   MARKER_UNLIT_COLOR,
   OBSTACLE_COLOR,
-  PLATE_LIT_COLORS,
   PLATE_UNLIT_COLOR,
   plateColor,
   SCENE_BACKGROUND_COLOR,
@@ -436,7 +427,12 @@ export class ArenaRenderer {
   private updateFollowCamera(session: SessionState): void {
     const player = session.world.entities.find((entity) => entity.id === PLAYER_ENTITY_ID);
     if (!player) return;
-    const base = heightAt(player.position, this.levels.levels, this.levels.stairs, this.levels.hallBands);
+    const base = heightAt(
+      player.position,
+      this.levels.levels,
+      this.levels.stairs,
+      this.levels.hallBands,
+    );
     const targetPosition = new Vector3(
       player.position.x - Math.cos(this.facing) * FOLLOW_CAMERA_BACK_DISTANCE,
       base + FOLLOW_CAMERA_HEIGHT,

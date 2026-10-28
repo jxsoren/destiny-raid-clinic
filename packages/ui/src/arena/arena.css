@@ -23,7 +23,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: rgba(10, 10, 10, 0.6);
+  background: var(--panel);
   color: var(--ink);
   z-index: 1;
 }
