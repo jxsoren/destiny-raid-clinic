@@ -401,6 +401,7 @@ export class ArenaRenderer {
    * live input/camera-follow. Currently only `'plate'` is meaningful to pass (the role picker only
    * offers it); `'caller'` is accepted for forward-compatibility with a later sub-project. */
   startLiveSession(role: PlayerRole): void {
+    if (this.session) return;
     this.session = createSessionState(this.config, this.rally, role);
     const plateConfig = this.config.plates.find((plate) => plate.id === 'mars-plate');
     this.facing = plateConfig
