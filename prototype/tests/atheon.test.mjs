@@ -121,6 +121,28 @@ test('objective: the Aegis and the plate are marked until you are on them', () =
   assert.equal(sim.objectiveTarget(), null);
 });
 
+// One location at a time: while the gate is open you see the place you are in, and nothing else
+test('locations: away-team seats see only the destination, Vault seats only the Vault, during the away phase', () => {
+  for (const [seat, loc, other] of [['relic', 'room', 'vault'], ['shooter', 'room', 'vault'], ['plate', 'vault', 'room'], ['caller', 'vault', 'room'], ['adds', 'vault', 'room']]){
+    const you = (sim.start(seat), sim.you()), S = sim.state();
+    S.phase = 'away'; you.loc = loc;
+    assert.equal(sim.youSee(loc), true, `${seat} should see the ${loc}`);
+    assert.equal(sim.youSee(other), false, `${seat} should not see the ${other}`);
+  }
+});
+
+test('locations: spectators and every other phase see both', () => {
+  sim.start(null);
+  sim.state().phase = 'away';
+  assert.deepEqual([sim.youSee('vault'), sim.youSee('room')], [true, true]);
+  const you = (sim.start('relic'), sim.you());
+  for (const phase of ['opening', 'teleport', 'dps']){
+    sim.state().phase = phase;
+    assert.deepEqual([sim.youSee('vault'), sim.youSee('room')], [true, true], phase);
+  }
+  assert.ok(you);
+});
+
 const IDLE_WIPES = {
   relic: 'You were consumed by the Void',
   shooter: 'An Oracle finished its song',
