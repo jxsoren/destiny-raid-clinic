@@ -459,9 +459,11 @@ export class ArenaRenderer {
     input.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         event.preventDefault();
+        event.stopPropagation();
         this.submitChatMessage();
       } else if (event.key === 'Escape') {
         event.preventDefault();
+        event.stopPropagation();
         input.value = '';
         input.blur();
       }
@@ -601,6 +603,7 @@ export class ArenaRenderer {
           // role/config, this invariant breaks silently.
           this.session = createSessionState(this.config, this.rally, this.session.playerRole);
           this.wipedSince = null;
+          this.previousPlateHeld.clear();
         }
       } else {
         this.wipedSince = null;
