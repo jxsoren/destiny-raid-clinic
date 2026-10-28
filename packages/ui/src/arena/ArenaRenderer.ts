@@ -3,15 +3,7 @@
 // through the real engine/mechanics pipeline, a fixed angled-overview camera, basic lighting and a
 // fixed-timestep render loop. No real input yet — see
 // docs/superpowers/specs/2026-10-23-atheon-entities-mechanics-feedback-design.md for why.
-import type {
-  ArenaDef,
-  EncounterMechanicsConfig,
-  MechanicsState,
-  NavGrid,
-  Point,
-  SequenceCalloutConfig,
-  SequenceCalloutState,
-} from '@raid-clinic/sim';
+import type { ArenaDef, EncounterMechanicsConfig, NavGrid, Point } from '@raid-clinic/sim';
 import { buildNavGrid, distance } from '@raid-clinic/sim';
 import {
   BoxGeometry,
@@ -46,7 +38,6 @@ import {
   MARKER_LIT_COLOR,
   MARKER_UNLIT_COLOR,
   OBSTACLE_COLOR,
-  PLATE_LIT_COLORS,
   PLATE_UNLIT_COLOR,
   plateColor,
   SCENE_BACKGROUND_COLOR,
@@ -61,6 +52,13 @@ import {
   TICK_SECONDS,
   WIN_WINDOW_START_TICK,
 } from './scenario';
+import {
+  createSessionState,
+  PLAYER_ENTITY_ID,
+  type PlayerRole,
+  type SessionState,
+  stepSession,
+} from './session';
 
 export interface Marker {
   id: string;
@@ -99,6 +97,33 @@ const FOV_DEGREES = 50;
 const CAMERA_ANGLE_DEGREES = 55;
 /** Extra headroom so the arena isn't framed exactly edge-to-edge. */
 const FRAME_MARGIN = 1.2;
+
+/** WASD/arrow key codes mapped to their direction contribution. Multiple held keys sum (e.g. 'w'+'d'
+ * gives a diagonal) — the engine's `advanceDirect` normalizes the result, so no pre-normalization is
+ * needed here. */
+const KEY_DIRECTIONS: Record<string, { dx: number; dy: number }> = {
+  w: { dx: 0, dy: -1 },
+  arrowup: { dx: 0, dy: -1 },
+  s: { dx: 0, dy: 1 },
+  arrowdown: { dx: 0, dy: 1 },
+  a: { dx: -1, dy: 0 },
+  arrowleft: { dx: -1, dy: 0 },
+  d: { dx: 1, dy: 0 },
+  arrowright: { dx: 1, dy: 0 },
+};
+/** How far behind the player (along their facing direction) the follow camera sits, in sim units. */
+const FOLLOW_CAMERA_BACK_DISTANCE = 40;
+/** How far above the player's local ground the follow camera sits. */
+const FOLLOW_CAMERA_HEIGHT = 30;
+/** How far above the player's local ground the follow camera looks at (roughly chest height). */
+const FOLLOW_CAMERA_LOOK_HEIGHT = 6;
+/** Per-frame interpolation factor toward the follow camera's target position/look-at — tuned
+ * visually against the dev server, not mathematically derived (a feel parameter, like WALL_HEIGHT). */
+const FOLLOW_CAMERA_LERP = 0.1;
+/** How long (ms) a wiped live session keeps the red ground tint visible before the attempt
+ * automatically restarts — long enough to register as a wipe, short enough to retry quickly. A
+ * feel parameter, tuned by eye, not derived. */
+const WIPE_RESET_DELAY_MS = 2000;
 
 /**
  * Derives the camera's height and backward setback (both along the `arena.height` axis) so that,
@@ -231,6 +256,22 @@ export class ArenaRenderer {
   private scenario: ScenarioState;
   private accumulator = 0;
   private lastTime: number | null = null;
+  /** Non-null once `startLiveSession` has been called — switches the render loop from the idle demo
+   * to the interactive one. */
+  private session: SessionState | null = null;
+  /** `performance.now()`-style timestamp of the first frame a live session was observed wiped, or
+   * `null` when not currently wiped (including right after a fresh/reset session). Lets the wipe
+   * tint stay visible for a short, real time before the attempt restarts — see `frame()`. */
+  private wipedSince: number | null = null;
+  private readonly heldKeys = new Set<string>();
+  /** The player's last nonzero movement direction, in radians — persists through idle moments
+   * (matching the prototype's own behavior), used to orient the follow camera. Defaults to facing
+   * toward the player's plate target, computed once `startLiveSession` is called. */
+  private facing = 0;
+  private readonly cameraLookAt = new Vector3();
+  private keydownListener: ((event: KeyboardEvent) => void) | null = null;
+  private keyupListener: ((event: KeyboardEvent) => void) | null = null;
+  private rally!: Point;
 
   private constructor(
     private readonly renderer: WebGPURenderer,
@@ -242,6 +283,7 @@ export class ArenaRenderer {
     this.grid = buildNavGrid(arena, 5);
     const rally = markers.find((m) => m.id === 'rally');
     if (!rally) throw new Error("Scene requires a 'rally' marker");
+    this.rally = rally.position;
     this.scenario = createScenarioState(config, rally.position);
 
     this.scene.background = new Color(SCENE_BACKGROUND_COLOR);
@@ -309,15 +351,7 @@ export class ArenaRenderer {
       this.markerMaterials.set(marker.id, material);
     }
 
-    for (const entity of this.scenario.world.entities) {
-      const entityMaterial = new MeshStandardMaterial({ color: ENTITY_COLOR });
-      const mesh = new Mesh(
-        new CapsuleGeometry(ENTITY_RADIUS, ENTITY_LENGTH, 4, 8),
-        entityMaterial,
-      );
-      this.scene.add(mesh);
-      this.entityMeshes.set(entity.id, mesh);
-    }
+    for (const entity of this.scenario.world.entities) this.createEntityMesh(entity.id);
 
     this.scene.add(new HemisphereLight(0xffffff, 0x444444, 1));
     const sun = new DirectionalLight(SUN_COLOR, 1.1);
@@ -331,7 +365,8 @@ export class ArenaRenderer {
     const centerZ = arena.height / 2;
     const { elevation, setback } = overviewOffset(arena.height);
     this.camera.position.set(centerX, elevation, centerZ - setback);
-    this.camera.lookAt(centerX, 0, centerZ);
+    this.cameraLookAt.set(centerX, 0, centerZ);
+    this.camera.lookAt(this.cameraLookAt);
 
     this.applyScenario();
   }
@@ -352,11 +387,73 @@ export class ArenaRenderer {
 
   stop(): void {
     void this.renderer.setAnimationLoop(null);
+    if (this.keydownListener) globalThis.removeEventListener('keydown', this.keydownListener);
+    if (this.keyupListener) globalThis.removeEventListener('keyup', this.keyupListener);
   }
 
   dispose(): void {
     this.stop();
     this.renderer.dispose();
+  }
+
+  /** Begins an interactive playthrough as `role` — switches the render loop from the idle demo to
+   * live input/camera-follow. Currently only `'plate'` is meaningful to pass (the role picker only
+   * offers it); `'caller'` is accepted for forward-compatibility with a later sub-project. */
+  startLiveSession(role: PlayerRole): void {
+    if (this.session) return;
+    this.session = createSessionState(this.config, this.rally, role);
+    const plateConfig = this.config.plates.find((plate) => plate.id === 'mars-plate');
+    this.facing = plateConfig
+      ? Math.atan2(plateConfig.position.y - this.rally.y, plateConfig.position.x - this.rally.x)
+      : 0;
+    this.keydownListener = (event) => this.heldKeys.add(event.key.toLowerCase());
+    this.keyupListener = (event) => this.heldKeys.delete(event.key.toLowerCase());
+    globalThis.addEventListener('keydown', this.keydownListener);
+    globalThis.addEventListener('keyup', this.keyupListener);
+  }
+
+  private createEntityMesh(id: string): void {
+    const entityMaterial = new MeshStandardMaterial({ color: ENTITY_COLOR });
+    const mesh = new Mesh(new CapsuleGeometry(ENTITY_RADIUS, ENTITY_LENGTH, 4, 8), entityMaterial);
+    this.scene.add(mesh);
+    this.entityMeshes.set(id, mesh);
+  }
+
+  private playerInput(): { dx: number; dy: number } {
+    let dx = 0;
+    let dy = 0;
+    for (const key of this.heldKeys) {
+      const direction = KEY_DIRECTIONS[key];
+      if (direction) {
+        dx += direction.dx;
+        dy += direction.dy;
+      }
+    }
+    return { dx, dy };
+  }
+
+  private updateFollowCamera(session: SessionState): void {
+    const player = session.world.entities.find((entity) => entity.id === PLAYER_ENTITY_ID);
+    if (!player) return;
+    const base = heightAt(
+      player.position,
+      this.levels.levels,
+      this.levels.stairs,
+      this.levels.hallBands,
+    );
+    const targetPosition = new Vector3(
+      player.position.x - Math.cos(this.facing) * FOLLOW_CAMERA_BACK_DISTANCE,
+      base + FOLLOW_CAMERA_HEIGHT,
+      player.position.y - Math.sin(this.facing) * FOLLOW_CAMERA_BACK_DISTANCE,
+    );
+    const targetLookAt = new Vector3(
+      player.position.x,
+      base + FOLLOW_CAMERA_LOOK_HEIGHT,
+      player.position.y,
+    );
+    this.camera.position.lerp(targetPosition, FOLLOW_CAMERA_LERP);
+    this.cameraLookAt.lerp(targetLookAt, FOLLOW_CAMERA_LERP);
+    this.camera.lookAt(this.cameraLookAt);
   }
 
   private readonly frame = (now: number): void => {
@@ -367,17 +464,60 @@ export class ArenaRenderer {
     // after the tab was backgrounded), but MAX_TICKS_PER_FRAME is an explicit second guard so a
     // future change to that clamp or to TICK_HZ can't silently reintroduce an unbounded loop here.
     let ticksThisFrame = 0;
-    while (this.accumulator >= TICK_SECONDS && ticksThisFrame < MAX_TICKS_PER_FRAME) {
-      this.scenario = stepScenario(this.grid, this.config, this.scenario);
-      this.accumulator -= TICK_SECONDS;
-      ticksThisFrame++;
+    if (this.session) {
+      const input = this.playerInput();
+      if (input.dx !== 0 || input.dy !== 0) this.facing = Math.atan2(input.dy, input.dx);
+      while (this.accumulator >= TICK_SECONDS && ticksThisFrame < MAX_TICKS_PER_FRAME) {
+        this.session = stepSession(this.grid, this.config, this.session, input);
+        this.accumulator -= TICK_SECONDS;
+        ticksThisFrame++;
+      }
+      if (this.session.mechanics.wiped) {
+        if (this.wipedSince === null) {
+          this.wipedSince = now;
+        } else if (now - this.wipedSince >= WIPE_RESET_DELAY_MS) {
+          // Safe to reset by swapping the whole SessionState: createSessionState's entity set is a
+          // pure function of (config, role), and both are unchanged here, so the new session always
+          // has exactly the same entity ids as the one it replaces — no mesh is orphaned in
+          // `entityMeshes` (which has no removal path). If a future change lets a reset vary
+          // role/config, this invariant breaks silently.
+          this.session = createSessionState(this.config, this.rally, this.session.playerRole);
+          this.wipedSince = null;
+        }
+      } else {
+        this.wipedSince = null;
+      }
+      this.applySession(this.session);
+      this.updateFollowCamera(this.session);
+    } else {
+      while (this.accumulator >= TICK_SECONDS && ticksThisFrame < MAX_TICKS_PER_FRAME) {
+        this.scenario = stepScenario(this.grid, this.config, this.scenario);
+        this.accumulator -= TICK_SECONDS;
+        ticksThisFrame++;
+      }
+      this.applyScenario();
     }
-    this.applyScenario();
     this.renderer.render(this.scene, this.camera);
   };
 
   private applyScenario(): void {
-    for (const entity of this.scenario.world.entities) {
+    this.applyWorldState(this.scenario);
+  }
+
+  private applySession(session: SessionState): void {
+    this.applyWorldState(session);
+  }
+
+  /** Updates every mesh from a world/mechanics snapshot — works for both `ScenarioState` (the idle
+   * demo) and `SessionState` (a live playthrough). The parameter is the explicit union (not a
+   * generic `{ world, mechanics }` shape) specifically so the `'tick' in state` check below
+   * type-checks: TypeScript only narrows an `in` check across a union's members, not against a
+   * single structural type that never declares the property at all. Only `inWinWindow` differs: the
+   * idle demo derives it from a fixed script tick (`ScenarioState.tick`); a live session has no such
+   * window yet (outcome overlays are a later sub-project), so it's always `false` there. */
+  private applyWorldState(state: ScenarioState | SessionState): void {
+    for (const entity of state.world.entities) {
+      if (!this.entityMeshes.has(entity.id)) this.createEntityMesh(entity.id);
       const mesh = this.entityMeshes.get(entity.id);
       const base = heightAt(
         entity.position,
@@ -391,19 +531,19 @@ export class ArenaRenderer {
     for (const plateConfig of this.config.plates) {
       const material = this.plateMaterials.get(plateConfig.id);
       if (!material) continue;
-      const held = this.scenario.mechanics.plates[plateConfig.id]?.held ?? false;
+      const held = state.mechanics.plates[plateConfig.id]?.held ?? false;
       material.color.setHex(plateColor(plateConfig.id, held));
     }
 
     const calloutConfig = this.config.callouts.find((c) => c.id === ORACLE_CALLOUT_ID);
-    const calloutState = this.scenario.mechanics.callouts[ORACLE_CALLOUT_ID];
+    const calloutState = state.mechanics.callouts[ORACLE_CALLOUT_ID];
     const litIds = litMarkerIds(calloutConfig, calloutState);
     for (const [id, material] of this.markerMaterials) {
       material.color.setHex(litIds.has(id) ? MARKER_LIT_COLOR : MARKER_UNLIT_COLOR);
     }
 
-    const inWinWindow = this.scenario.tick >= WIN_WINDOW_START_TICK;
-    const override = groundColor(this.scenario.mechanics, inWinWindow);
+    const inWinWindow = 'tick' in state ? state.tick >= WIN_WINDOW_START_TICK : false;
+    const override = groundColor(state.mechanics, inWinWindow);
     for (const { material, baseColor } of this.groundMaterials) {
       material.color.setHex(override ?? baseColor);
     }

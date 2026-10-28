@@ -1,7 +1,7 @@
 import { createRng } from '@raid-clinic/ui/space';
 import type { Point } from './geometry';
 import { distance } from './geometry';
-import type { NavGrid } from './navgrid';
+import { isWalkableAt, type NavGrid } from './navgrid';
 import { findPath } from './pathfinding';
 
 /** Fixed simulation rate. Rendering interpolates between ticks; nothing in this package renders. */
@@ -24,9 +24,13 @@ export interface World {
   rng: () => number;
 }
 
-/** Per-tick inputs: a move order replaces an entity's current path with a fresh one toward `destination`. */
+/** Per-tick inputs: a move order replaces an entity's current path with a fresh one toward
+ * `destination`. A direction vector steers an entity directly, with wall-sliding collision, no
+ * pathfinding involved. An entity present in both this tick uses `moveOrders` — the two are
+ * mutually exclusive in practice (a player-steered entity never also has a path order queued). */
 export interface EngineInputs {
   moveOrders?: Record<string, Point>;
+  moveDirect?: Record<string, { dx: number; dy: number }>;
 }
 
 export interface Snapshot {
@@ -81,6 +85,29 @@ function advance(
   return { position: current, path: remaining };
 }
 
+/** Moves `position` by a `distanceBudget`-scaled step in `direction` (normalized internally — the
+ * caller doesn't need to pre-normalize), sliding along one axis if the full diagonal move is
+ * blocked, matching the prototype's own `stepMove` wall-sliding behavior exactly: try the full
+ * move, then X-only, then Y-only, then stay put. */
+function advanceDirect(
+  grid: NavGrid,
+  position: Point,
+  direction: { dx: number; dy: number },
+  distanceBudget: number,
+): Point {
+  const length = Math.hypot(direction.dx, direction.dy);
+  if (length === 0) return position;
+  const stepX = (direction.dx / length) * distanceBudget;
+  const stepY = (direction.dy / length) * distanceBudget;
+  const full = { x: position.x + stepX, y: position.y + stepY };
+  if (isWalkableAt(grid, full.x, full.y)) return full;
+  const xOnly = { x: position.x + stepX, y: position.y };
+  if (isWalkableAt(grid, xOnly.x, xOnly.y)) return xOnly;
+  const yOnly = { x: position.x, y: position.y + stepY };
+  if (isWalkableAt(grid, yOnly.x, yOnly.y)) return yOnly;
+  return position;
+}
+
 /**
  * Advances the world by one fixed tick, in a fixed order: apply this tick's move orders (replacing
  * paths), then move every entity along its current path by `speed * TICK_SECONDS`.
@@ -91,10 +118,22 @@ function advance(
  */
 export function step(world: World, grid: NavGrid, inputs: EngineInputs): World {
   const entities = world.entities.map((entity) => {
-    const destination = inputs.moveOrders?.[entity.id];
-    const path = destination ? findPath(grid, entity.position, destination) : entity.path;
     const budget = entity.speed * TICK_SECONDS;
-    const { position, path: remainingPath } = advance(entity.position, path, budget);
+
+    const destination = inputs.moveOrders?.[entity.id];
+    if (destination) {
+      const path = findPath(grid, entity.position, destination);
+      const { position, path: remainingPath } = advance(entity.position, path, budget);
+      return { ...entity, position, path: remainingPath };
+    }
+
+    const direction = inputs.moveDirect?.[entity.id];
+    if (direction) {
+      const position = advanceDirect(grid, entity.position, direction, budget);
+      return { ...entity, position, path: [] };
+    }
+
+    const { position, path: remainingPath } = advance(entity.position, entity.path, budget);
     return { ...entity, position, path: remainingPath };
   });
 

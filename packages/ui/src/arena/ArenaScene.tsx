@@ -6,6 +6,8 @@ import type { ArenaDef, EncounterMechanicsConfig } from '@raid-clinic/sim';
 import { createSignal, onCleanup, onMount, Show } from 'solid-js';
 import type { ArenaRenderer, Marker } from './ArenaRenderer';
 import type { EncounterLevelsContent } from './levels';
+import { RolePicker } from './RolePicker';
+import type { PlayerRole } from './session';
 
 export interface ArenaSceneProps {
   arena: ArenaDef;
@@ -20,6 +22,13 @@ export function ArenaScene(props: ArenaSceneProps) {
   let root!: HTMLDivElement;
   let canvas: HTMLCanvasElement | undefined;
   const [mode, setMode] = createSignal<Mode>('loading');
+  const [sessionStarted, setSessionStarted] = createSignal(false);
+  let liveRenderer: ArenaRenderer | undefined;
+
+  const selectRole = (role: PlayerRole): void => {
+    liveRenderer?.startLiveSession(role);
+    setSessionStarted(true);
+  };
 
   onMount(() => {
     let disposed = false;
@@ -41,6 +50,7 @@ export function ArenaScene(props: ArenaSceneProps) {
           return;
         }
         renderer = r;
+        liveRenderer = r;
         const resize = () => {
           const { width, height } = root.getBoundingClientRect();
           r.resize(width, height, globalThis.devicePixelRatio || 1);
@@ -67,6 +77,9 @@ export function ArenaScene(props: ArenaSceneProps) {
       </Show>
       <Show when={mode() === 'error'}>
         <p class="rc-arena__error">3D rendering isn't available in this browser.</p>
+      </Show>
+      <Show when={mode() === 'live' && !sessionStarted()}>
+        <RolePicker onSelect={selectRole} />
       </Show>
     </div>
   );
