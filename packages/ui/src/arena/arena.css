@@ -35,8 +35,8 @@
   width: min(380px, calc(100% - 32px));
   font-style: italic;
   text-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.9),
-    0 0 2px rgba(0, 0, 0, 0.9);
+    var(--text-shadow),
+    0 0 2px var(--orb-shade);
   color: var(--ink);
   z-index: 1;
 }
@@ -56,10 +56,10 @@
   margin-top: 6px;
   padding-top: 4px;
   border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.5);
+  border-top: 1px solid var(--divider);
   background: transparent;
   color: var(--ink);
-  font-family: inherit;
+  font-family: var(--font-ui);
   font-style: italic;
   font-size: 13px;
 }

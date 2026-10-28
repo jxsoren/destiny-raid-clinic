@@ -3,7 +3,13 @@
 // through the real engine/mechanics pipeline, a fixed angled-overview camera, basic lighting and a
 // fixed-timestep render loop. No real input yet — see
 // docs/superpowers/specs/2026-10-23-atheon-entities-mechanics-feedback-design.md for why.
-import type { ArenaDef, CalloutEvent, EncounterMechanicsConfig, NavGrid, Point } from '@raid-clinic/sim';
+import type {
+  ArenaDef,
+  CalloutEvent,
+  EncounterMechanicsConfig,
+  NavGrid,
+  Point,
+} from '@raid-clinic/sim';
 import { buildNavGrid, distance } from '@raid-clinic/sim';
 import {
   BoxGeometry,
@@ -22,6 +28,7 @@ import {
   Vector3,
   WebGPURenderer,
 } from 'three/webgpu';
+import { calloutEventsFromMessage, plateHeldNarration } from './chat';
 import {
   type ArenaLevels,
   type EncounterLevelsContent,
@@ -59,7 +66,6 @@ import {
   type SessionState,
   stepSession,
 } from './session';
-import { calloutEventsFromMessage, plateHeldNarration } from './chat';
 
 export interface Marker {
   id: string;

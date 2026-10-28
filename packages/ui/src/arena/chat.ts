@@ -30,6 +30,10 @@ export function calloutEventsFromMessage(text: string): CalloutEvent[] {
  * didn't just become held (no change, or it just became unheld — "held" is the noteworthy event in
  * this scope; see the design spec for why no "lost" message is needed). `label` is the
  * human-readable plate name (e.g. `"mars"` for `mars-plate`), not the raw plate id. */
-export function plateHeldNarration(label: string, wasHeld: boolean, isHeld: boolean): string | null {
+export function plateHeldNarration(
+  label: string,
+  wasHeld: boolean,
+  isHeld: boolean,
+): string | null {
   return !wasHeld && isHeld ? `${label} plate held` : null;
 }
