@@ -79,4 +79,25 @@ describe('stepSession', () => {
     const state = run(60);
     expect(state.mechanics.wiped).toBe(false);
   });
+
+  it('uses playerCalloutEvents (not the placeholder) when the player plays caller', () => {
+    let state = createSessionState(twoPlateConfig, rally, 'caller');
+    state = stepSession(grid, twoPlateConfig, state, { dx: 0, dy: 0 }, []);
+    // No placeholder events submitted, and no player events submitted -> callout stays pending.
+    expect(state.mechanics.callouts['oracle-order']?.status).toBe('pending');
+
+    state = stepSession(grid, twoPlateConfig, state, { dx: 0, dy: 0 }, [
+      { type: 'callout', calloutId: 'oracle-order', value: 'oracle-2' },
+    ]);
+    expect(state.mechanics.callouts['oracle-order']?.nextIndex).toBe(1);
+  });
+
+  it('still uses the placeholder callout logic when the player plays plate, ignoring any playerCalloutEvents passed', () => {
+    let state = createSessionState(twoPlateConfig, rally, 'plate');
+    state = stepSession(grid, twoPlateConfig, state, { dx: 0, dy: 0 }, [
+      { type: 'callout', calloutId: 'oracle-order', value: 'wrong-value' },
+    ]);
+    // Placeholder submits the correct next value regardless of what playerCalloutEvents contained.
+    expect(state.mechanics.callouts['oracle-order']?.status).not.toBe('failed');
+  });
 });
