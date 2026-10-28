@@ -120,6 +120,10 @@ const FOLLOW_CAMERA_LOOK_HEIGHT = 6;
 /** Per-frame interpolation factor toward the follow camera's target position/look-at — tuned
  * visually against the dev server, not mathematically derived (a feel parameter, like WALL_HEIGHT). */
 const FOLLOW_CAMERA_LERP = 0.1;
+/** How long (ms) a wiped live session keeps the red ground tint visible before the attempt
+ * automatically restarts — long enough to register as a wipe, short enough to retry quickly. A
+ * feel parameter, tuned by eye, not derived. */
+const WIPE_RESET_DELAY_MS = 2000;
 
 /**
  * Derives the camera's height and backward setback (both along the `arena.height` axis) so that,
@@ -255,6 +259,10 @@ export class ArenaRenderer {
   /** Non-null once `startLiveSession` has been called — switches the render loop from the idle demo
    * to the interactive one. */
   private session: SessionState | null = null;
+  /** `performance.now()`-style timestamp of the first frame a live session was observed wiped, or
+   * `null` when not currently wiped (including right after a fresh/reset session). Lets the wipe
+   * tint stay visible for a short, real time before the attempt restarts — see `frame()`. */
+  private wipedSince: number | null = null;
   private readonly heldKeys = new Set<string>();
   /** The player's last nonzero movement direction, in radians — persists through idle moments
    * (matching the prototype's own behavior), used to orient the follow camera. Defaults to facing
@@ -463,6 +471,16 @@ export class ArenaRenderer {
         this.session = stepSession(this.grid, this.config, this.session, input);
         this.accumulator -= TICK_SECONDS;
         ticksThisFrame++;
+      }
+      if (this.session.mechanics.wiped) {
+        if (this.wipedSince === null) {
+          this.wipedSince = now;
+        } else if (now - this.wipedSince >= WIPE_RESET_DELAY_MS) {
+          this.session = createSessionState(this.config, this.rally, this.session.playerRole);
+          this.wipedSince = null;
+        }
+      } else {
+        this.wipedSince = null;
       }
       this.applySession(this.session);
       this.updateFollowCamera(this.session);
