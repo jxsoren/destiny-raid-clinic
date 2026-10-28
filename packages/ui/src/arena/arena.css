@@ -27,3 +27,44 @@
   color: var(--ink);
   z-index: 1;
 }
+
+.rc-arena__chat {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: min(380px, calc(100% - 32px));
+  font-style: italic;
+  text-shadow:
+    var(--text-shadow),
+    0 0 2px var(--orb-shade);
+  color: var(--ink);
+  z-index: 1;
+}
+
+.rc-arena__chat-log {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  line-height: 1.7;
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+
+.rc-arena__chat-input {
+  width: 100%;
+  margin-top: 6px;
+  padding-top: 4px;
+  border: none;
+  border-top: 1px solid var(--divider);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-style: italic;
+  font-size: 13px;
+}
+
+.rc-arena__chat-input:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 2px;
+}

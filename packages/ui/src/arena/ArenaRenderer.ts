@@ -3,7 +3,13 @@
 // through the real engine/mechanics pipeline, a fixed angled-overview camera, basic lighting and a
 // fixed-timestep render loop. No real input yet — see
 // docs/superpowers/specs/2026-10-23-atheon-entities-mechanics-feedback-design.md for why.
-import type { ArenaDef, EncounterMechanicsConfig, NavGrid, Point } from '@raid-clinic/sim';
+import type {
+  ArenaDef,
+  CalloutEvent,
+  EncounterMechanicsConfig,
+  NavGrid,
+  Point,
+} from '@raid-clinic/sim';
 import { buildNavGrid, distance } from '@raid-clinic/sim';
 import {
   BoxGeometry,
@@ -22,6 +28,7 @@ import {
   Vector3,
   WebGPURenderer,
 } from 'three/webgpu';
+import { calloutEventsFromMessage, plateHeldNarration } from './chat';
 import {
   type ArenaLevels,
   type EncounterLevelsContent,
@@ -124,6 +131,9 @@ const FOLLOW_CAMERA_LERP = 0.1;
  * automatically restarts — long enough to register as a wipe, short enough to retry quickly. A
  * feel parameter, tuned by eye, not derived. */
 const WIPE_RESET_DELAY_MS = 2000;
+
+/** How many chat lines stay visible before the oldest ones are dropped. */
+const CHAT_LOG_MAX_LINES = 20;
 
 /**
  * Derives the camera's height and backward setback (both along the `arena.height` axis) so that,
@@ -272,6 +282,18 @@ export class ArenaRenderer {
   private keydownListener: ((event: KeyboardEvent) => void) | null = null;
   private keyupListener: ((event: KeyboardEvent) => void) | null = null;
   private rally!: Point;
+  /** Non-null only when the live session's role is `'caller'` (the chat overlay only exists for
+   * that role). */
+  private chatContainer: HTMLDivElement | null = null;
+  private chatLogElement: HTMLDivElement | null = null;
+  private chatInputElement: HTMLInputElement | null = null;
+  private chatToggleListener: ((event: KeyboardEvent) => void) | null = null;
+  /** Callout events queued by a chat submission, consumed by the next `stepSession` call and then
+   * cleared — a one-shot input, like `moveOrders`, not a per-tick continuous one like `moveDirect`. */
+  private pendingCalloutEvents: CalloutEvent[] = [];
+  /** Each plate's held state as of the last frame, keyed by plate id — used to detect "just became
+   * held" transitions for chat narration (only populated/read when the chat overlay exists). */
+  private readonly previousPlateHeld = new Map<string, boolean>();
 
   private constructor(
     private readonly renderer: WebGPURenderer,
@@ -389,6 +411,8 @@ export class ArenaRenderer {
     void this.renderer.setAnimationLoop(null);
     if (this.keydownListener) globalThis.removeEventListener('keydown', this.keydownListener);
     if (this.keyupListener) globalThis.removeEventListener('keyup', this.keyupListener);
+    if (this.chatToggleListener) globalThis.removeEventListener('keydown', this.chatToggleListener);
+    this.chatContainer?.remove();
   }
 
   dispose(): void {
@@ -397,8 +421,8 @@ export class ArenaRenderer {
   }
 
   /** Begins an interactive playthrough as `role` — switches the render loop from the idle demo to
-   * live input/camera-follow. Currently only `'plate'` is meaningful to pass (the role picker only
-   * offers it); `'caller'` is accepted for forward-compatibility with a later sub-project. */
+   * live input/camera-follow. For `'caller'`, also sets up the chat overlay this role submits
+   * callouts through. */
   startLiveSession(role: PlayerRole): void {
     if (this.session) return;
     this.session = createSessionState(this.config, this.rally, role);
@@ -406,10 +430,108 @@ export class ArenaRenderer {
     this.facing = plateConfig
       ? Math.atan2(plateConfig.position.y - this.rally.y, plateConfig.position.x - this.rally.x)
       : 0;
-    this.keydownListener = (event) => this.heldKeys.add(event.key.toLowerCase());
-    this.keyupListener = (event) => this.heldKeys.delete(event.key.toLowerCase());
+    this.keydownListener = (event) => {
+      if (document.activeElement === this.chatInputElement) return;
+      this.heldKeys.add(event.key.toLowerCase());
+    };
+    this.keyupListener = (event) => {
+      if (document.activeElement === this.chatInputElement) return;
+      this.heldKeys.delete(event.key.toLowerCase());
+    };
     globalThis.addEventListener('keydown', this.keydownListener);
     globalThis.addEventListener('keyup', this.keyupListener);
+
+    if (role === 'caller') {
+      const root = this.renderer.domElement.parentElement;
+      if (root) this.setupChat(root);
+    }
+  }
+
+  /** Creates the plain-DOM chat log + input (the Caller role's only input mechanism), appended
+   * into `root` (the canvas's parent element — the same stacking context the canvas fills).
+   * Consistent with this class already owning the canvas and keyboard listeners imperatively,
+   * rather than wiring a new reactive channel back into the Solid component layer for one overlay. */
+  private setupChat(root: HTMLElement): void {
+    const container = document.createElement('div');
+    container.className = 'rc-arena__chat';
+
+    const log = document.createElement('div');
+    log.className = 'rc-arena__chat-log';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'rc-arena__chat-input';
+    input.placeholder = 'Press Enter to chat';
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        event.stopPropagation();
+        this.submitChatMessage();
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        input.value = '';
+        input.blur();
+      }
+    });
+
+    container.append(log, input);
+    root.appendChild(container);
+    this.chatContainer = container;
+    this.chatLogElement = log;
+    this.chatInputElement = input;
+
+    this.chatToggleListener = (event) => {
+      if (event.key !== 'Enter') return;
+      if (document.activeElement === input) return;
+      event.preventDefault();
+      this.heldKeys.clear();
+      input.focus();
+    };
+    globalThis.addEventListener('keydown', this.chatToggleListener);
+  }
+
+  /** Reads the chat input's current text, queues its parsed callouts for the next `stepSession`
+   * call, logs the submitted line, and closes the input. */
+  private submitChatMessage(): void {
+    const input = this.chatInputElement;
+    if (!input) return;
+    const text = input.value;
+    this.pendingCalloutEvents.push(...calloutEventsFromMessage(text));
+    this.appendChatLine(`To [Fireteam]: ${text}`);
+    input.value = '';
+    input.blur();
+  }
+
+  /** Appends one line to the chat log, dropping the oldest once `CHAT_LOG_MAX_LINES` is exceeded,
+   * and scrolls the log to the bottom so the newest line is always visible (the log is a fixed,
+   * scrollable height — see arena.css — so without this, new messages could scroll out of view). */
+  private appendChatLine(text: string): void {
+    const log = this.chatLogElement;
+    if (!log) return;
+    const line = document.createElement('div');
+    line.textContent = text;
+    log.appendChild(line);
+    while (log.children.length > CHAT_LOG_MAX_LINES) {
+      const first = log.firstChild;
+      if (first) log.removeChild(first);
+    }
+    log.scrollTop = log.scrollHeight;
+  }
+
+  /** Narrates each plate's "just became held" transition into the chat log — a no-op when the chat
+   * overlay doesn't exist (the `'plate'` role, where the player holds a plate themselves and bots
+   * cover everything else; narrating their own plate's own state back at them adds nothing). */
+  private narratePlateChanges(session: SessionState): void {
+    if (!this.chatLogElement) return;
+    for (const plateConfig of this.config.plates) {
+      const isHeld = session.mechanics.plates[plateConfig.id]?.held ?? false;
+      const wasHeld = this.previousPlateHeld.get(plateConfig.id) ?? false;
+      const label = plateConfig.id.replace(/-plate$/, '');
+      const line = plateHeldNarration(label, wasHeld, isHeld);
+      if (line) this.appendChatLine(`To [Fireteam]: ${line}`);
+      this.previousPlateHeld.set(plateConfig.id, isHeld);
+    }
   }
 
   private createEntityMesh(id: string): void {
@@ -467,11 +589,15 @@ export class ArenaRenderer {
     if (this.session) {
       const input = this.playerInput();
       if (input.dx !== 0 || input.dy !== 0) this.facing = Math.atan2(input.dy, input.dx);
+      let calloutEvents = this.pendingCalloutEvents;
+      this.pendingCalloutEvents = [];
       while (this.accumulator >= TICK_SECONDS && ticksThisFrame < MAX_TICKS_PER_FRAME) {
-        this.session = stepSession(this.grid, this.config, this.session, input);
+        this.session = stepSession(this.grid, this.config, this.session, input, calloutEvents);
+        calloutEvents = [];
         this.accumulator -= TICK_SECONDS;
         ticksThisFrame++;
       }
+      this.narratePlateChanges(this.session);
       if (this.session.mechanics.wiped) {
         if (this.wipedSince === null) {
           this.wipedSince = now;
@@ -483,6 +609,7 @@ export class ArenaRenderer {
           // role/config, this invariant breaks silently.
           this.session = createSessionState(this.config, this.rally, this.session.playerRole);
           this.wipedSince = null;
+          this.previousPlateHeld.clear();
         }
       } else {
         this.wipedSince = null;

@@ -18,9 +18,9 @@ export const SESSION_TICK_SECONDS = 1 / TICK_HZ;
 const ENTITY_SPEED = 60;
 /** The player's entity id in the world. */
 export const PLAYER_ENTITY_ID = 'player';
-/** Only 'plate' is actually selectable in this sub-project — see the design spec's scope decision 4.
- * 'caller' has no input mechanism until 4c ships the chat overlay; the type stays general so
- * enabling it later is a small follow-on change, not a rewrite. */
+/** Both roles are selectable: 'plate' holds a plate (bots cover the Oracle-order callout and every
+ * other plate); 'caller' submits the Oracle-order callout via the chat overlay (bots cover every
+ * plate). See docs/superpowers/specs/2026-10-28-atheon-chat-callout-input-design.md. */
 export type PlayerRole = 'plate' | 'caller';
 /** The plate a 'plate'-role player holds, chosen arbitrarily (matching the scripted demo's original
  * single-entity target) — see the design spec's "Plate coverage" note. */
@@ -87,14 +87,15 @@ function placeholderCalloutEvents(
  * keys are held); each plate-bot is issued its one-time `moveOrders` destination exactly once,
  * tracked via `state.ordersIssued` (a structural invariant of the session's own state, rather than
  * inferred from the engine's `World.tick`) and never re-issued; the placeholder callout logic runs
- * only when the player plays `'plate'` (when `'caller'` becomes playable in 4c, the player submits
- * their own callouts instead, so this is skipped).
+ * when the player plays `'plate'`, or `playerCalloutEvents` (the player's own typed-and-submitted
+ * callouts, routed through the chat overlay) are used instead when the player plays `'caller'`.
  */
 export function stepSession(
   grid: NavGrid,
   config: EncounterMechanicsConfig,
   state: SessionState,
   playerInput: { dx: number; dy: number },
+  playerCalloutEvents: CalloutEvent[] = [],
 ): SessionState {
   const botPlates = platesForBots(config, state.playerRole);
   const moveOrders: Record<string, Point> | undefined =
@@ -108,7 +109,9 @@ export function stepSession(
   });
 
   const calloutEvents =
-    state.playerRole === 'plate' ? placeholderCalloutEvents(config, state.mechanics) : [];
+    state.playerRole === 'plate'
+      ? placeholderCalloutEvents(config, state.mechanics)
+      : playerCalloutEvents;
   const mechanics = stepMechanics(
     config,
     state.mechanics,
