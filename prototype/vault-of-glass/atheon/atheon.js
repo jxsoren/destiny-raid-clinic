@@ -1251,11 +1251,39 @@ async function initEngine(){
     renderer.setPixelRatio(pr); renderer.setSize(W2, H2, false); composer.setPixelRatio(pr); composer.setSize(W2, H2);
     reflector.getRenderTarget().setSize(Math.max(64, W2*pr*Math.max(t.refl,.1)|0), Math.max(64, H2*pr*Math.max(t.refl,.1)|0));
     camera.aspect = W2/H2;
-    if (camera.aspect < 1.2){ camera.fov = 44; base0.set(10, 170, 150); look0.set(10, 0, -3); }
-    else { camera.fov = 40; base0.set(18, 80, 100); look0.set(18, 2, -3); }
-    frameRoom(); camera.updateProjectionMatrix(); pMat.uniforms.uScale.value = H2*pr*.5;
+    camera.fov = camera.aspect < 1.2 ? 44 : 40; camera.updateProjectionMatrix();
+    frameArena(); frameRoom(); camera.updateProjectionMatrix(); pMat.uniforms.uScale.value = H2*pr*.5;
   }
   const base0 = new THREE.Vector3(), look0 = new THREE.Vector3();
+  // The default view fits the arena to the window instead of using fixed distances: the camera keeps its
+  // pitch (flatter on a wide window, steeper on a tall one) and backs off only until every corner of the
+  // arena is inside the frame, with a small margin, then recentres on what it sees. The arena is tall and
+  // narrow, so a wide window is limited by height; a narrow window gets a steeper, closer view.
+  const FIT_MARGIN = .035;
+  let fitPts = null;
+  function frameArena(){
+    if (!fitPts){
+      fitPts = [];
+      for (const key of ['upper', 'platform', 'lower', 'dais']) for (const pt of ARENA[key]) fitPts.push(V(pt.x, pt.y, 0));
+      for (const pt of ARENA.dais) fitPts.push(V(pt.x, pt.y, 15)); // Atheon stands tall at the far end
+    }
+    const pitch = (camera.aspect < 1.2 ? 48 : 37) * Math.PI/180, dir = new THREE.Vector3(0, Math.sin(pitch), Math.cos(pitch));
+    const c = new THREE.Vector3(); fitPts.forEach(q => c.add(q)); c.multiplyScalar(1/fitPts.length);
+    const target = c.clone(), v = new THREE.Vector3(), halfV = Math.tan(camera.fov*Math.PI/360);
+    let d = 140;
+    for (let it = 0; it < 18; it++){
+      camera.position.copy(target).addScaledVector(dir, d); camera.lookAt(target); camera.updateMatrixWorld();
+      let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+      for (const q of fitPts){ v.copy(q).project(camera); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); }
+      const hw = (x1 - x0)/2, hh = (y1 - y0)/2, ox = (x1 + x0)/2, oy = (y1 + y0)/2;
+      d *= Math.pow(Math.max(hw, hh) / (1 - FIT_MARGIN), .85);
+      const m = camera.matrixWorld.elements;
+      target.x += (m[0]*ox*camera.aspect + m[4]*oy) * halfV * d * .5;
+      target.y += (m[1]*ox*camera.aspect + m[5]*oy) * halfV * d * .5;
+      target.z += (m[2]*ox*camera.aspect + m[6]*oy) * halfV * d * .5;
+    }
+    base0.copy(target).addScaledVector(dir, d); look0.copy(target);
+  }
   // Where the camera goes when you are in the destination chamber: same pitch as the Vault view, pulled in
   // to fit the chamber. A narrow window needs more distance to fit its width.
   const roomBase = new THREE.Vector3(), roomLook = new THREE.Vector3();
