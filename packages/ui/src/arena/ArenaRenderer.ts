@@ -476,6 +476,11 @@ export class ArenaRenderer {
         if (this.wipedSince === null) {
           this.wipedSince = now;
         } else if (now - this.wipedSince >= WIPE_RESET_DELAY_MS) {
+          // Safe to reset by swapping the whole SessionState: createSessionState's entity set is a
+          // pure function of (config, role), and both are unchanged here, so the new session always
+          // has exactly the same entity ids as the one it replaces — no mesh is orphaned in
+          // `entityMeshes` (which has no removal path). If a future change lets a reset vary
+          // role/config, this invariant breaks silently.
           this.session = createSessionState(this.config, this.rally, this.session.playerRole);
           this.wipedSince = null;
         }
