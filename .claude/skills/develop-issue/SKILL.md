@@ -211,7 +211,7 @@ Check whether the issue touched UI: any changed file under a frontend path (e.g.
 If it is a UI fix, every preview gets a **screenshot** and, when the change moves or is only visible over time (animation, pulsing/bobbing effects, camera rotation, canvas/WebGL rendering, transitions, drag interactions), a **short clip**. One script captures both.
 
 Facts this step relies on (each one cost a failed attempt to learn):
-- `gh` has no way to upload files. GitHub only accepts attachments through its web comment box, so the upload needs a browser signed in to GitHub (8.5c).
+- `gh` has no way to upload files. GitHub only accepts attachments through its web comment box, so the upload needs a browser signed in to GitHub (8.5b).
 - GitHub plays **mp4/mov** inline. A `.webm` attachment shows up as a download link. Playwright records webm, and its bundled ffmpeg can only write VP8, so converting needs a full `ffmpeg` on PATH.
 - Headless Playwright Chromium renders the three.js/WebGL scenes fine for a preview. It is not a substitute for the real-GPU check in the README.
 - Never commit media to the repo or park it in release assets to get a URL.
@@ -229,43 +229,58 @@ Facts this step relies on (each one cost a failed attempt to learn):
 4. **Look at `preview.png` before posting.** If it doesn't show the change, adjust the clicks or duration and record again.
 5. A "before" capture from the base branch is optional. Only do it when the difference is hard to describe in words.
 
-### 8.5b — Upload to GitHub
+### 8.5b — Upload and post
 
-Use a browser tool that is signed in to GitHub as the user (Claude in Chrome, or another browser MCP):
+The capture in 8.5a runs in Playwright's own headless Chromium, so it works the same whatever browser the person uses day to day. Only this upload step needs a browser that is signed in to GitHub as the user, and there are two routes. Use whichever is available; if neither is, stop and tell the user what to set up.
 
-1. Open the PR page and find the **new comment** box's file input (the "Paste, drop, or click to add files" control under the comment textarea).
-2. Upload `preview.png` and `preview.mp4` to that input with the browser tool's file-upload action. Don't click the input; that opens a native file picker the agent can't use.
-3. Wait a few seconds, then read the attachment URLs out of the textarea with a page script, not by eye (long ids are easy to misread):
+| Route | Browsers | Check it is ready |
+|---|---|---|
+| **Claude in Chrome** (extension) | Chrome only | `list_connected_browsers` returns a browser |
+| **Playwright MCP** | Chrome, Firefox, WebKit or Edge, chosen by the MCP server's `--browser` option | `browser_navigate` to the PR, then `browser_evaluate` on `() => document.querySelector('meta[name="user-login"]')?.content` returns the user's login |
+
+**Setting up the Playwright MCP route for Firefox** (one time, by the user): run the MCP server with `--browser firefox`. Its window is visible (headed) and keeps a persistent profile by default, or one you choose with `--user-data-dir`. The user signs in to GitHub once in that window and it stays signed in. A profile can only be open in one browser at a time. Never sign in for the user. Its extension mode (attach to a running browser) is Chrome and Edge only, so it doesn't help for Firefox.
+
+**What does not work**, so it isn't retried:
+- The desktop app's built-in browser can be signed in to GitHub but has no file-upload tool, and a pasted image does not register.
+- Copying file bytes into a script by hand corrupts them (the image won't load).
+- Moving bytes between pages with `window.name` or `postMessage` is blocked by the safety checks as exfiltration. Don't try to route around that.
+
+Steps, in this order (the tool names for each route are in brackets, Chrome first):
+1. **Open the PR page and wait about 3 seconds**, then locate the new comment form's file input, its textarea and its submit button [`find` | `browser_snapshot`]. The first `find` straight after a navigation can fail with a "navigated to a different domain" message; run it again. Refs go stale when the page re-renders, so locate again right before each use and never reuse refs from an earlier step.
+2. **Upload first** (`preview.png`, `preview.mp4`, any extra screenshots, under 10 MB combined):
+   - Chrome: `file_upload` to the file input ("Add files"). Don't click the input; that opens a native picker the agent can't use.
+   - Playwright: click the "Add files" button; the result shows a "File chooser" modal state. Then call `browser_file_upload` with the paths. It only accepts paths inside its allowed roots (the error lists them), so first copy the files into the `.playwright-mcp` folder under the MCP's workspace root, and delete those copies afterwards. Page tools such as `browser_evaluate` refuse to run while the chooser is still open.
+3. **Read the attachment markdown back** with a page script, not by eye [`javascript_tool` | `browser_evaluate`]:
    ```js
-   [...document.querySelectorAll('textarea')].map(t => t.value)
-     .join('\n').match(/https:\/\/github\.com\/user-attachments\/assets\/[0-9a-f-]+/g)
+   document.getElementById('new_comment_field').value
    ```
-   The image URL comes first if the png was uploaded first.
-4. **Clear the textarea without posting.** The uploads stay valid; the draft is only a way to get URLs.
-
-If no signed-in browser tool is available, stop here: send the user the two files, say the preview isn't posted, and skip to the cleanup at the end of 8.5c only after they confirm they have the files.
-
-### 8.5c — Post, verify, clean up
-
-1. Write the comment body to a scratch file and post it with `gh`, so the text is exact:
+   Each file appears as a line with a `https://github.com/user-attachments/assets/<id>` URL.
+4. **Write the final comment by setting the textarea's value directly** [`form_input` | `browser_type` or `browser_fill_form` with a target], reusing those exact URLs:
    ```markdown
-   UI preview for #<number>: <one or two sentences on what to look for, and anything odd in the clip, e.g. an unplayed seat failing its mechanic>.
+   UI preview for #<number>: <one or two sentences on what to look for>.
 
    <img width="1280" alt="<short description>" src="<image-url>" />
 
    <video-url>
    ```
-   The video URL goes **on its own line, bare** (no Markdown link syntax). That is what makes GitHub render a player.
-   ```bash
-   gh pr comment <branch-name> --body-file <comment-file>
-   ```
-2. **Also add the preview to the PR description** so it is visible without scrolling: read the body with `gh pr view <branch-name> --json body --jq .body`, append a `## Preview` section with the same image and video lines, and write it back with `gh pr edit <branch-name> --body-file <updated-body-file>`. Don't clobber the existing body.
-3. **Verify** the post: `gh api repos/{owner}/{repo}/issues/comments/<id> --jq .body` shows both URLs. If a browser tool is available, load the comment and check the video element loaded (`readyState` 4, non-zero `duration`).
-4. **Delete the local media** once the post is verified, so captures don't pile up on disk:
+   The video URL goes **on its own line, bare** (no Markdown link syntax). That is what makes GitHub render a player. Setting the value replaces the whole textarea, which is why the upload comes first.
+5. **Post it.** Click the submit button of the new comment form. The page also has an "Update comment" button for editing; make sure the label is "Comment".
+
+**Never type into the page.** If a click on the textarea fails and you send key presses anyway, the keystrokes hit GitHub's keyboard shortcuts: once that opened vscode.dev (asking to sign in) and two "Create codespace" pages. Only set values on a specific element. If anything unexpected opens, list the tabs, close the stray ones without clicking Allow or Create, and confirm with `gh` that nothing was changed.
+
+Close the tabs you opened when you are done. If no signed-in route is ready, say so and wait for the user to set it up. Never send the media to the user or leave it on their device; keep the captures in the scratch folder until the post is verified.
+
+### 8.5c — Verify, describe, clean up
+
+1. **Verify** the comment: `gh api repos/{owner}/{repo}/issues/<pr-number>/comments --jq '[.[] | select(.user.login=="<user>")] | last | .body'` shows the image and video URLs. If a browser tool is available, load the comment and check the video element loaded (`readyState` 4, non-zero `duration`).
+2. **Also add the preview to the PR description** so it is visible without scrolling: read the body with `gh pr view <branch-name> --json body --jq .body`, append a `## Preview` section with the same image and video lines, and write it back with `gh pr edit <branch-name> --body-file <updated-body-file>`. Don't clobber the existing body, and keep the `Closes #<number>` lines at the top.
+3. **Delete the local media** once the post is verified, so captures don't pile up on disk:
    ```bash
    node .claude/skills/develop-issue/scripts/record-preview.mjs --clean --out <scratch-dir>
    ```
-   It only deletes a folder holding nothing but its own `preview.*` files, so point `--out` at a folder made just for this capture. Also delete the comment and body scratch files and stop the dev server. GitHub keeps its own copy of the uploads. Do this even when the post failed and the user took the files, once they confirm they have them.
+   It only deletes a folder holding nothing but its own `preview.*` files, so for other screenshots just delete the scratch folder. Also delete the comment and body scratch files and stop the dev server. GitHub keeps its own copy of the uploads.
+
+A failed attempt can leave an unreferenced upload on GitHub. It is harmless and cannot be deleted; don't retry in a loop to avoid creating more.
 
 If the dev server can't start or nothing can be captured, skip this step and say in the final report that no UI preview was posted.
 
