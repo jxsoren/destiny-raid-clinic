@@ -24,6 +24,6 @@
   justify-content: center;
   gap: 0.5rem;
   background: rgba(10, 10, 10, 0.6);
-  color: #fff;
+  color: var(--ink);
   z-index: 1;
 }
