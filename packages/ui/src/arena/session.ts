@@ -109,7 +109,9 @@ export function stepSession(
   });
 
   const calloutEvents =
-    state.playerRole === 'plate' ? placeholderCalloutEvents(config, state.mechanics) : playerCalloutEvents;
+    state.playerRole === 'plate'
+      ? placeholderCalloutEvents(config, state.mechanics)
+      : playerCalloutEvents;
   const mechanics = stepMechanics(
     config,
     state.mechanics,
