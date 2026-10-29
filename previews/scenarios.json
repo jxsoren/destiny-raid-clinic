@@ -1,0 +1,26 @@
+{
+  "server": "prototype",
+  "scenarios": [
+    {
+      "id": "atheon-seat-picker",
+      "title": "Atheon seat picker",
+      "path": "/vault-of-glass/atheon/",
+      "clicks": [],
+      "settle": 3,
+      "seconds": 1,
+      "width": 960,
+      "height": 600
+    },
+    {
+      "id": "atheon-plate-holder",
+      "title": "Plate Holder, first 12 s",
+      "path": "/vault-of-glass/atheon/",
+      "clicks": ["Plate Holder"],
+      "settle": 3,
+      "seconds": 12,
+      "gif": true,
+      "width": 960,
+      "height": 600
+    }
+  ]
+}

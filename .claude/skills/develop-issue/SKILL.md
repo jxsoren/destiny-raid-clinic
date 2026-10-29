@@ -210,6 +210,8 @@ Check whether the issue touched UI: any changed file under a frontend path (e.g.
 
 If it is a UI fix, every preview gets a **screenshot** and, when the change moves or is only visible over time (animation, pulsing/bobbing effects, camera rotation, canvas/WebGL rendering, transitions, drag interactions), a **short clip**. One script captures both.
 
+**CI captures prototype previews for you.** The `PR previews` workflow runs on every PR that touches `prototype/`, `packages/ui/`, `apps/site/` or `previews/`, and keeps one sticky comment with a screenshot per scenario in `previews/scenarios.json` (GIF too when a scenario sets `"gif": true`, or for all of them with the `preview:video` label). It never blocks the PR. So for a prototype UI change, add or edit a scenario in `previews/scenarios.json` (id, title, path, `clicks`, `seconds`, and `"gif": true` only when the change moves), push, and check the comment appears. Use 8.5a to 8.5c below when the change is not covered by a scenario, the workflow failed, or you need a before/after. Scenarios run against `prototype/` only for now.
+
 Facts this step relies on (each one cost a failed attempt to learn):
 - `gh` has no way to upload files. GitHub only accepts attachments through its web comment box, so the upload needs a browser signed in to GitHub (8.5b).
 - GitHub plays **mp4/mov** inline. A `.webm` attachment shows up as a download link. Playwright records webm, and its bundled ffmpeg can only write VP8, so converting needs a full `ffmpeg` on PATH.
