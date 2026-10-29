@@ -1,0 +1,147 @@
+name: PR previews
+
+# Screenshots (and short GIFs for motion) of the scenarios in previews/scenarios.json, posted as one
+# sticky comment per PR. It runs beside CI, never blocks a PR, and the media is deleted on close.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed, labeled]
+    paths:
+      - prototype/**
+      - packages/ui/**
+      - apps/site/**
+      - previews/**
+      - scripts/preview-*.mjs
+      - .github/workflows/preview.yml
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  PR: ${{ github.event.pull_request.number }}
+
+jobs:
+  capture:
+    name: Capture
+    # Forks get a read-only token, so they cannot publish. A label event only matters for preview:video.
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.action != 'labeled' || github.event.label.name == 'preview:video')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    concurrency:
+      group: preview-capture-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter site...
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install Playwright Chromium
+        timeout-minutes: 10
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            cmd="install-deps chromium"
+          else
+            cmd="install --with-deps chromium"
+          fi
+          pnpm --filter site exec playwright $cmd
+      - name: Install ffmpeg (GIF conversion)
+        timeout-minutes: 5
+        run: command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+      - name: Capture scenarios
+        run: |
+          node prototype/serve.mjs &
+          sleep 2
+          flags=""
+          if [ "${{ contains(github.event.pull_request.labels.*.name, 'preview:video') }}" = "true" ]; then
+            flags="--all-gifs"
+          fi
+          node scripts/preview-ci.mjs --base http://localhost:8080 --out preview-out $flags
+      - name: Build the comment
+        run: node scripts/preview-comment.mjs preview-out/manifest.json "$GITHUB_REPOSITORY" "$PR" "${{ github.event.pull_request.head.sha }}" > preview-out/comment.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: preview-${{ github.event.pull_request.number }}
+          path: preview-out
+          retention-days: 1
+
+  publish:
+    name: Publish
+    needs: capture
+    if: needs.capture.result == 'success'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    # One writer at a time, so two PRs never race to update the pr-previews branch
+    concurrency:
+      group: pr-previews-branch
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: preview-${{ github.event.pull_request.number }}
+          path: preview-out
+      - name: Update the pr-previews branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git clone --quiet --branch pr-previews --depth 1 "$remote" site 2>/dev/null \
+            || { mkdir site && git -C site init --quiet; }
+          cd site
+          rm -rf "pr-${PR}" && mkdir "pr-${PR}"
+          cp ../preview-out/*.png ../preview-out/*.gif "pr-${PR}/" 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Keep the branch a single commit so old captures never pile up in its history
+          git checkout --orphan snapshot
+          git add -A
+          git commit --quiet -m "PR previews"
+          git push --quiet --force "$remote" snapshot:pr-previews
+      - name: Create or update the sticky comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          id=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" --paginate \
+            --jq '[.[] | select(.body | startswith("<!-- pr-previews -->"))][0].id // empty')
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${id}" -F body=@preview-out/comment.md
+          else
+            gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file preview-out/comment.md
+          fi
+
+  cleanup:
+    name: Delete this PR's media
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    concurrency:
+      group: pr-previews-branch
+      cancel-in-progress: false
+    steps:
+      - name: Remove this PR's folder from the pr-previews branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git clone --quiet --branch pr-previews --depth 1 "$remote" site 2>/dev/null || exit 0
+          cd site
+          [ -d "pr-${PR}" ] || exit 0
+          rm -rf "pr-${PR}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan snapshot
+          git add -A
+          git commit --quiet --allow-empty -m "PR previews"
+          git push --quiet --force "$remote" snapshot:pr-previews
