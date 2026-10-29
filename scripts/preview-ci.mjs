@@ -92,7 +92,7 @@ async function capture(s, browser) {
       gif,
     );
     if (ok) result.gif = `${s.id}.gif`;
-    else result.note = 'screenshot only: the GIF conversion failed';
+    else result.note = 'Screenshot only: the GIF conversion failed (is ffmpeg installed?).';
     await rename(webm, join(opt.out, `${s.id}.webm`)).catch(() => {});
     await rm(join(opt.out, `${s.id}.webm`), { force: true });
   }

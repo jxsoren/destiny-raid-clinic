@@ -57,6 +57,9 @@ jobs:
             cmd="install --with-deps chromium"
           fi
           pnpm --filter site exec playwright $cmd
+      - name: Install ffmpeg (GIF conversion)
+        timeout-minutes: 5
+        run: command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
       - name: Capture scenarios
         run: |
           node prototype/serve.mjs &
